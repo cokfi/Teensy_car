@@ -14,6 +14,7 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 //static CAN_message_t msg;
 CAN_message_t torqe_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
+int state = LV_STATE;
 uint8_t Throttle = 0, Brake = 0, TPS_Implausibility = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
@@ -99,20 +100,51 @@ void setup(void)
 void loop() {
   Can1.events();
 
-      switch (state)
+  switch (state)
     {
 
-    case STATE_1:
+    case LV_STATE:
         // do stuff
         // maybe change state
         break;
 
-    case STATE_2:
+    case HV_STATE:
         // do stuff
         // maybe change state
         break;
 
-    case STATE_3:
+    case R2D_STATE:
+        
+
+
+
+        // maybe change state
+        break;
+    case FW_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case REV_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case BT_REV_STATE:
+        // do stuff
+        // maybe change state
+        break;
+    case BT_FW_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case ERROR_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case LIMP_STATE:
         // do stuff
         // maybe change state
         break;
