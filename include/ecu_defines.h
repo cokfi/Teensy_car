@@ -23,6 +23,15 @@
 #define ForceCooling_pin 30
 #define shutdownFB_pin 15
 
-
+//states
+#define LV_STATE 1 // low voltage state
+#define HV_STATE 2 // high voltage state
+#define R2D_STATE 3 // ready to drive-Neutral state
+#define FW_STATE 4 // forward state
+#define REV_STATE 5 // Reverse state
+#define BT_REV_STATE 6 // brake and throttle-Reverse state
+#define BT_FW_STATE 7 // brake and throttle-Forward state
+#define ERROR_STATE 8
+#define LIMP_STATE 9
 
 #endif
