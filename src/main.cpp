@@ -17,7 +17,7 @@ IntervalTimer myTimer1;                      // Create an IntervalTimer1 object
 uint8_t Throttle = 0, Brake = 0, TPS_Implausibility = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
-
+static CAN_message_t msg;
 void setup(void)
 {
   Serial.begin(115200);

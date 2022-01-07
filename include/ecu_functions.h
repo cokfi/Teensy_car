@@ -8,26 +8,26 @@
 void Status_Print(void) ;
 
 
-void Print_CanMsg(void);
-void PedalControllerMB(void);
-void CurrentMeasMB(void);
-void VoltageMeasure1MB(void);
-void VoltageMeasure2MB(void);
-void VoltageMeasure3MB(void);
-void TemperatureMeasureMB(void);
-void PowerMeasure(void);
-void BatteryStateMB(void);
-void BatterySOCPercentMB(void);
-void BatteryVoltageMB(void);
-void ChargerFlagsMB(void);
-void MotorControllerMB(void);
-void Interrupt_Routine(void);
-void Send_Tourqe(void);
+void Print_CanMsg(const CAN_message_t &msg);
+void PedalControllerMB(const CAN_message_t &inMsg);
+void CurrentMeasMB(const CAN_message_t &inMsg);
+void VoltageMeasure1MB(const CAN_message_t &inMsg);
+void VoltageMeasure2MB(const CAN_message_t &inMsg);
+void VoltageMeasure3MB(const CAN_message_t &inMsg);
+void TemperatureMeasureMB(const CAN_message_t &inMsg);
+void PowerMeasure(const CAN_message_t &inMsg);
+void BatteryStateMB(const CAN_message_t &inMsg);
+void BatterySOCPercentMB(const CAN_message_t &inMsg);
+void BatteryVoltageMB(const CAN_message_t &inMsg);
+void ChargerFlagsMB(const CAN_message_t &inMsg);
+void MotorControllerMB(const CAN_message_t &inMsg);
+void Interrupt_Routine();
+void Send_Tourqe();
 
 extern FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 extern FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2;
 //extern myTimer1;                      // Create an IntervalTimer1 object ;
-
+extern CAN_message_t msg;
 extern CAN_message_t torqe_msg;
 
 extern uint8_t Throttle , Brake , TPS_Implausibility , Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
