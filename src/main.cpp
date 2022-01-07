@@ -7,7 +7,7 @@
 #include "ecu_defines.h"
 
 
-
+//init
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 
@@ -18,6 +18,9 @@ uint8_t Throttle = 0, Brake = 0, TPS_Implausibility = 0, Battery_Percent, TS_vol
 uint8_t Charger_flags, voltage_implausibility;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
 static CAN_message_t msg;
+int state= LV_STATE;
+int init_skip =0;
+
 void setup(void)
 {
   Serial.begin(115200);
@@ -93,7 +96,7 @@ void setup(void)
   Can1.mailboxStatus();
   Timer1.initialize(1000000);
   Timer1.attachInterrupt(Interrupt_Routine); // blinkLED to run every 0.15 seconds
- 
+  
 }
 
 void loop() {
@@ -102,9 +105,15 @@ void loop() {
       switch (state)
     {
 
-    case STATE_1:
-        // do stuff
-        // maybe change state
+    case LV_STATE:
+        digitalWrite(TsoffLed_pin,HIGH);
+        digitalWrite(discharge_pin,LOW);
+        state = check_HV();
+        state = check_lv_errors();
+        if (!air_plus) ||(digitalRead(shutdownFB_pin)==0){
+
+        }
+
         break;
 
     case STATE_2:

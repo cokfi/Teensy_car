@@ -135,6 +135,5 @@ void Send_Tourqe() {
   torqe_msg.flags.remote   = 0;
   torqe_msg.flags.overrun  = 0;
   torqe_msg.flags.reserved = 0;
-  
   Can1.write(torqe_msg);    //CANBus write command
 }
