@@ -97,7 +97,31 @@ void setup(void)
 }
 
 void loop() {
-    Can1.events();
+  Can1.events();
+
+      switch (state)
+    {
+
+    case STATE_1:
+        // do stuff
+        // maybe change state
+        break;
+
+    case STATE_2:
+        // do stuff
+        // maybe change state
+        break;
+
+    case STATE_3:
+        // do stuff
+        // maybe change state
+        break;
+
+    // ...
+
+    }
+
+
   /*
   // put your main code here, to run repeatedly:
   digitalWrite(ledPin, HIGH);   // set the LED on
