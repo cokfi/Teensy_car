@@ -25,7 +25,7 @@ int cool = 0 ;
 int prev_cool =0;
 bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
 bool enabe_dcdc = true ; // 
-
+bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
 
 
 void setup(void)
@@ -50,15 +50,17 @@ void setup(void)
   pinMode(Collingfan1_pin, OUTPUT);
   pinMode(Collingfan2_pin, OUTPUT);
   pinMode(Ecufault_pin, OUTPUT);
-  myTimer1.begin(Send_Tourqe, 500000);                         // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
 
+  
+  pinMode(ForwardSwitch_pin, INPUT);
   pinMode(ReverseSwitch_pin, INPUT);
   pinMode(R2Dbutton_pin, INPUT);
   pinMode(ForceCooling_pin, INPUT);
   pinMode(shutdownFB_pin, INPUT);
 
-  myTimer1.begin(Send_Tourqe, 500000);                         // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
-
+  myTimer1.begin(Send_Tourqe, TorqueDelay);                            // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
+  myTimer2.begin(HeartBeatAISP, CheckOnDelay);                         // AISP - AMS, IVTS, Sevcon, Pedal Controller
+  myTimer3.begin(CheckPowerAnd, DelayMs); 
   // Mailbox setup
   Can1.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); //Configuration of all Recived MB
   Can2.setMaxMB(11); //Configuration of all Recived MB
@@ -102,6 +104,8 @@ void setup(void)
   Can1.mailboxStatus();
   Timer1.initialize(1000000);
   Timer1.attachInterrupt(Interrupt_Routine); 
+  Timer2.initialize(1000000); 
+  Timer3.initialize(1000000);
   
 }
 

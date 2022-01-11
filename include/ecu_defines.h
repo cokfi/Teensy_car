@@ -33,6 +33,11 @@
 #define BT_FW_STATE 7 // brake and throttle-Forward state
 #define ERROR_STATE 8
 #define LIMP_STATE 9
+// Values
+#define VoltageTollerance 40
+#define TorqueDelay 500000
+#define CheckOnDelay 100000
+#define DelayMs 1000
+#define MaxPower 10000
 #define CAP_CHARGED 330 // capacitor [V] 95% TODO change value and units 
-
 #endif
