@@ -68,12 +68,20 @@ void Print_CanMsg(const CAN_message_t &msg) {
 }
 void PedalControllerMB(const CAN_message_t &inMsg) {
   Brake = inMsg.buf[2];
+
   if (inMsg.buf[0] == 0x20) {
+    PedalControllerError = 0;
     TPS_Implausibility = 1;
     Serial.println("Implausibility");
     Throttle = 0;
   }
+  else if (inMsg.buf[0] == 0x30){
+    PedalControllerError = 1;
+    Serial.println("PedalError");
+  }
   else
+    PedalControllerError = 0;
+    TPS_Implausibility = 0;
     Throttle = inMsg.buf[1];
 }
 void CurrentMeasMB(const CAN_message_t &inMsg) {
@@ -119,7 +127,7 @@ void Interrupt_Routine(){
 
 
 void Send_Tourqe() {
-  if(abs(Motor_Voltage - (Voltage_meas1/1000)) > 50)  
+  if(abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance)  
   {
     torqe_msg.buf[0] = 0;
     voltage_implausibility = 1;  
@@ -137,4 +145,25 @@ void Send_Tourqe() {
   torqe_msg.flags.reserved = 0;
   
   Can1.write(torqe_msg);    //CANBus write command
+}
+
+int LowVoltageError(state){
+  if (AMSError){
+    state = ERROR_STATE;
+  }
+  if (PedalControllerError){
+    state = ERROR_STATE;
+  }
+  return state
+}
+
+int HighVoltageError(state){
+  if (AMSError){
+    state = ERROR_STATE;
+  }
+  if (PedalControllerError){
+    state = ERROR_STATE;
+  }
+
+  return state
 }

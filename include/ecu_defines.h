@@ -34,4 +34,6 @@
 #define ERROR_STATE 8
 #define LIMP_STATE 9
 
+// Values
+#define VoltageTollerance 20
 #endif
