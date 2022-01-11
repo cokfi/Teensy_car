@@ -35,5 +35,9 @@
 #define LIMP_STATE 9
 
 // Values
-#define VoltageTollerance 20
+#define VoltageTollerance 40
+#define TorqueDelay 500000
+#define CheckOnDelay 100000
+#define DelayMs 1000
+#define MaxPower 10000
 #endif
