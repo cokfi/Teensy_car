@@ -50,9 +50,8 @@ void setup(void)
   pinMode(Collingfan1_pin, OUTPUT);
   pinMode(Collingfan2_pin, OUTPUT);
   pinMode(Ecufault_pin, OUTPUT);
+  myTimer1.begin(Send_Tourqe, 500000);                         // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
 
-  
-  pinMode(ForwardSwitch_pin, INPUT);
   pinMode(ReverseSwitch_pin, INPUT);
   pinMode(R2Dbutton_pin, INPUT);
   pinMode(ForceCooling_pin, INPUT);
