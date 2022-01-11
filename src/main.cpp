@@ -15,9 +15,9 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 CAN_message_t torqe_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
 int state = LV_STATE;
-uint8_t Throttle = 0, Brake = 0, TPS_Implausibility = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
+uint8_t Throttle = 0, Brake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
-uint8_t AMSError = 0, PedalControllerError = 0;
+bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
 static CAN_message_t msg;
 void setup(void)
@@ -50,8 +50,9 @@ void setup(void)
   pinMode(ForceCooling_pin, INPUT);
   pinMode(shutdownFB_pin, INPUT);
 
-  myTimer1.begin(Send_Tourqe, 500000);                         // Send CAN messages through SendAnalog every 5ms
-
+  myTimer1.begin(Send_Tourqe, TorqueDelay);                         // Send CAN messages through SendAnalog every 500ms
+  myTimer2.begin(HeartBeatAISP, CheckOnDelay);                         // AISP - AMS, IVTS, Sevcon, Pedal Controller
+  myTimer3.begin(CheckPowerAnd, DelayMs); 
   // Mailbox setup
   Can1.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); //Configuration of all Recived MB
   Can2.setMaxMB(11); //Configuration of all Recived MB
@@ -95,7 +96,8 @@ void setup(void)
   Can1.mailboxStatus();
   Timer1.initialize(1000000);
   Timer1.attachInterrupt(Interrupt_Routine); // blinkLED to run every 0.15 seconds
- 
+  Timer2.initialize(1000000); 
+  Timer3.initialize(1000000);
 }
 
 void loop() {

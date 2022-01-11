@@ -67,40 +67,63 @@ void Print_CanMsg(const CAN_message_t &msg) {
   } Serial.println();
 }
 void PedalControllerMB(const CAN_message_t &inMsg) {
+  PedalBeat  = true;
   Brake = inMsg.buf[2];
 
   if (inMsg.buf[0] == 0x20) {
-    PedalControllerError = 0;
-    TPS_Implausibility = 1;
+    PedalControllerError = false;
+    TPS_Implausibility = true;
     Serial.println("Implausibility");
     Throttle = 0;
   }
   else if (inMsg.buf[0] == 0x30){
-    PedalControllerError = 1;
+    PedalControllerError = true;
+    TPS_Implausibility = false;
     Serial.println("PedalError");
   }
-  else
-    PedalControllerError = 0;
-    TPS_Implausibility = 0;
+  else{
+    PedalControllerError = false;
+    TPS_Implausibility = false;
     Throttle = inMsg.buf[1];
+  }
 }
+
+void HeartBeatAISP(){
+  if (IVTSBeat && SevconBeat && AMSBeat && PedalBeat){
+    HeartBeatError = false;
+  }
+  else{
+    HeartBeatError = true;
+  }
+  IVTSBeat   = false;
+  AMSBeat    = false;
+  SevconBeat = false; 
+  PedalBeat  = false;
+}
+
 void CurrentMeasMB(const CAN_message_t &inMsg) {
+  IVTSBeat = true;
   Current_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
 }
 void VoltageMeasure1MB(const CAN_message_t &inMsg) {
+  IVTSBeat = true;
   Voltage_meas1 = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
 }
 void VoltageMeasure2MB(const CAN_message_t &inMsg) {
+  IVTSBeat = true;
   Voltage_meas2 = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
 }
 void VoltageMeasure3MB(const CAN_message_t &inMsg) {
+  IVTSBeat = true;
   Voltage_meas3 = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
 }
 void TemperatureMeasureMB(const CAN_message_t &inMsg) {
+  IVTSBeat = true;
   Temperature_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
   Temperature_meas = Temperature_meas/10;
 }
 void PowerMeasure(const CAN_message_t &inMsg) {
+  IVTSBeat = true;
   Power_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
 }
 void BatteryStateMB(const CAN_message_t &inMsg) {
@@ -117,6 +140,7 @@ void ChargerFlagsMB(const CAN_message_t &inMsg) {
   Charger_flags = inMsg.buf[4];
 }
 void MotorControllerMB(const CAN_message_t &inMsg) {
+  SevconBeat = true;
   Motor_Torqe = inMsg.buf[0];
   Motor_On = inMsg.buf[1];
   Motor_Voltage = (inMsg.buf[2] << 8) + inMsg.buf[3];
@@ -147,23 +171,37 @@ void Send_Tourqe() {
   Can1.write(torqe_msg);    //CANBus write command
 }
 
-int LowVoltageError(state){
+int LVError(state){
   if (AMSError){
     state = ERROR_STATE;
   }
   if (PedalControllerError){
+    state = ERROR_STATE;
+  }
+  if(abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   return state
 }
 
-int HighVoltageError(state){
+int HVError(state){
   if (AMSError){
     state = ERROR_STATE;
   }
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-
+  if (abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance) {
+    state = ERROR_STATE;
+  }
+  if (!digitalRead(shutdownFB_pin)){
+    state = ERROR_STATE;
+  }
+  if (HeartBeatError){
+    state = ERROR_STATE;
+  }Power_meas
+  if (Power_meas> MaxPower){
+    state = ERROR_STATE;
+  }
   return state
 }
