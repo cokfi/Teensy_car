@@ -17,9 +17,15 @@ IntervalTimer myTimer1;                      // Create an IntervalTimer1 object
 uint8_t Throttle = 0, Brake = 0, TPS_Implausibility = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
-static CAN_message_t msg;
+static CAN_message_t msg ;
 int state= LV_STATE;
-int init_skip =0;
+int init_skip = 0 ; // first time entering LV state
+int disp_hv_needed = 0 ; //display to the driver that HV is needed for cooling
+int cool = 0 ;
+int prev_cool =0;
+bool capacitor ;
+
+
 
 void setup(void)
 {
@@ -51,7 +57,7 @@ void setup(void)
   pinMode(ForceCooling_pin, INPUT);
   pinMode(shutdownFB_pin, INPUT);
 
-  myTimer1.begin(Send_Tourqe, 500000);                         // Send CAN messages through SendAnalog every 5ms
+  myTimer1.begin(Send_Tourqe, 500000);                         // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
 
   // Mailbox setup
   Can1.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); //Configuration of all Recived MB
@@ -95,7 +101,7 @@ void setup(void)
   Can1.onReceive(MB11, MotorControllerMB);
   Can1.mailboxStatus();
   Timer1.initialize(1000000);
-  Timer1.attachInterrupt(Interrupt_Routine); // blinkLED to run every 0.15 seconds
+  Timer1.attachInterrupt(Interrupt_Routine); 
   
 }
 
@@ -106,25 +112,77 @@ void loop() {
     {
 
     case LV_STATE:
-        digitalWrite(TsoffLed_pin,HIGH);
-        digitalWrite(discharge_pin,LOW);
-        state = check_HV();
-        state = check_lv_errors();
-        if (!air_plus) ||(digitalRead(shutdownFB_pin)==0){
+        if (!init_skip){
+          digitalWrite(TsoffLed_pin,HIGH);
+          digitalWrite(discharge_pin,LOW);
+          init_skip = 1;
+        }
+        state = CheckHV(state);//check if high voltage
+        state = LVError(state);// check if low voltage error
+        if (air_plus) ||(digitalRead(shutdownFB_pin))||(state==HV_STATE) { //air+ rellay is closed OR Shutdown circut is closed 
+          digitalWrite(TsoffLed_pin,LOW);
+        }
+        disp_hv_needed = CheckCooling();//TODO pushbutton function
+        if (state!=LV_STATE){
+          init_skip = 0;
+        } 
+        break;
 
+    case HV_STATE:
+        if (!init_skip){
+          digitalWrite(TsoffLed_pin,LOW);
+          digitalWrite(discharge_pin,LOW);
+          init_skip = 1;
+        }
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
+
+        if (Motor_Voltage>CAP_CHARGED){ // capacitor is charged to 95% or higher voltage
+          
         }
 
+
         break;
 
-    case STATE_2:
+    case R2D_STATE:
+        
+
+
+
+        // maybe change state
+        break;
+    case FW_STATE:
         // do stuff
         // maybe change state
         break;
 
-    case STATE_3:
+    case REV_STATE:
         // do stuff
         // maybe change state
         break;
+
+    case BT_REV_STATE:
+        // do stuff
+        // maybe change state
+        break;
+    case BT_FW_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case ERROR_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case LIMP_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
 
     // ...
 

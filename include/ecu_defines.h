@@ -33,5 +33,6 @@
 #define BT_FW_STATE 7 // brake and throttle-Forward state
 #define ERROR_STATE 8
 #define LIMP_STATE 9
+#define CAP_CHARGED 330 // capacitor [V] 95% TODO change value and units 
 
 #endif
