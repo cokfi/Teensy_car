@@ -113,6 +113,7 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
 void CurrentMeasMB(const CAN_message_t &inMsg) {
   IVTSBeat = true;
   Current_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
+  nominal_current = CalcNonimal(Current_meas);
 }
 void VoltageMeasure1MB(const CAN_message_t &inMsg) {
   IVTSBeat = true;
@@ -186,6 +187,17 @@ void Send_Tourqe() {
   torqe_msg.flags.reserved = 0;
   
   Can1.write(torqe_msg);    //CANBus write command
+}
+
+int CalcNonimal(uint32_t Current_meas){
+  current_list[index] = Current_meas;
+  index = (index + 1) % NOMIMAL_NUM; // The newest measure, switchs the last measure each time
+  int sum = 0;
+  for (int i=0; i<NOMIMAL_NUM; i++){
+    sum +=current_list[i];
+  }
+  return sum/NOMIMAL_NUM;
+
 }
 
 int LVError(){
@@ -281,17 +293,46 @@ int CheckR2D(){
   if (R2DCounter == R2DDelay){
     if (digitalRead(R2Dbutton_pin) && Brake > MinBrakeR2D && !digitalRead(ForwardSwitch_pin) && !digitalRead(ReverseSwitch_pin)){
       if (air_plus && !charging){
-        R2DCounter = 0;  
+        ready_to_drive_pressed = true;
+        R2DCounter = 0;
         digitalWrite(EnableBuzzer_pin,HIGH);
       }
     }
   } else {    // R2DCounter != R2DDelay
     R2DCounter +=1;
-    if (R2DCounter == R2DDelay){
-      digitalWrite(EnableBuzzer_pin,LOW);
+    if (R2DCounter == R2DDelay && ready_to_drive_pressed){
       state = R2D_STATE;
     }
   }
   return state;
 }
 
+int LeaveR2D(){
+  if (digitalRead(R2Dbutton_pin) && Brake > MinBrakeR2D && velocity < MIN_SPEED_TO_REV ){
+    R2DCounter = R2DDelay - R2D_BUTTON_DELAY;
+    state = HV_STATE;
+  } else if (digitalRead(ForwardSwitch_pin)){
+    state = FW_STATE;
+  } else if (digitalRead(ReverseSwitch_pin) && velocity < MIN_SPEED_TO_REV){
+    state = REV_STATE;
+  }
+  return state;
+}
+
+int CheckLimp(){
+  if (Battery_Percent < MIN_BATTERY || nominal_current > MAX_NOMIMAL_CURRENT || Power_meas > MaxPower || Temperature_meas > MAX_TEMPERATURE){
+    state = LIMP_STATE;
+  }
+  return state;
+}
+
+bool WaitRelay(){
+  bool ready = false;
+  if (relay_counter != RELAY_DELAY_ERROR){
+    relay_counter +=1;
+  } else {
+    relay_counter = 0;
+    ready = true;
+  }
+  return ready;
+}

@@ -34,19 +34,27 @@
 #define ERROR_STATE 8
 #define LIMP_STATE 9
 // Values
-#define VoltageTollerance 40
-#define TorqueDelay 5   // 5 MilliSec for Each torqe send
-#define DelayMs 1000    // Main delay, each ms the main loop on
-#define MaxPower 10000  // 10000 Watt
-#define CAP_CHARGED 330 // capacitor [V] 95% TODO change value and units 
-#define HeartBeatCounterMaxValue 100    //100 ms, if no response from all unit go to error
-#define CoolingReqTemp 50   
-#define CoolButtonDelay 50
-#define R2DDelay 2000
-#define CoolingOff 0
-#define CoolingTempHigh 1
-#define ForcedCoolingVal 2
-#define MAX_LOW_VOLTAGE 15
-#define MAX_LOW_CURRENT 5
-#define MinBrakeR2D 5
+#define VoltageTollerance           40      // Temporary value
+#define TorqueDelay                 5       // 5 MilliSec for Each torqe send   // Temporary value
+#define DelayMs                     1000    // Main delay, each ms the main loop on
+#define MaxPower                    10000   // 10000 Watt   // Temporary value
+#define CAP_CHARGED                 330     // capacitor [V] 95% TODO change value and units    // Temporary value
+#define HeartBeatCounterMaxValue    100     //100 ms, if no response from all unit go to error  // Temporary value
+#define CoolingReqTemp              50      // Temporary value
+#define CoolButtonDelay             50      // Temporary value
+#define R2DDelay                    2000
+#define R2D_BUTTON_DELAY            100     // Temporary value
+#define CoolingOff                  0    
+#define CoolingTempHigh             1       // Temporary value
+#define ForcedCoolingVal            2       // Temporary value
+#define MAX_LOW_VOLTAGE             15      // Temporary value
+#define MAX_LOW_CURRENT             5       // Temporary value
+#define MinBrakeR2D                 5       // Temporary value
+#define MIN_SPEED_FOR_DISCHARGE     20      // Temporary value
+#define MIN_SPEED_TO_REV            10      // Temporary value
+#define MIN_BATTERY                 11      // Temporary value
+#define MAX_NOMIMAL_CURRENT         5       // Temporary value  
+#define MAX_TEMPERATURE             60      // Temporary value
+#define NOMIMAL_NUM                 10     
+#define RELAY_DELAY_ERROR           250
 #endif
