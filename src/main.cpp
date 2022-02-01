@@ -27,7 +27,7 @@ bool init_skip = false , air_plus = false, charging = false; // first time enter
 int cool = 0 ;
 int prev_cool =0;
 bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
-bool enabe_dcdc = true ; // 
+bool enable_dcdc = true ; // 
 bool open_relay = false;
 
 void setup(void)
