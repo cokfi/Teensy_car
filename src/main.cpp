@@ -135,7 +135,7 @@ void loop() {
           init_skip = false;
         } 
         break;
-
+    
     case HV_STATE:
         // init
         if (!init_skip){
