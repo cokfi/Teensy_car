@@ -5,7 +5,7 @@
 #define NUM_TX_MAILBOXES 2
 #define NUM_RX_MAILBOXES 12
 //Output
-#define discharge_pin 17
+#define AvoidDischarge_pin 17
 #define Pump1_pin 6
 #define Pump2_pin 7
 #define TsoffLed_pin  33
@@ -34,10 +34,34 @@
 #define ERROR_STATE 8
 #define LIMP_STATE 9
 // Values
-#define VoltageTollerance 40
-#define TorqueDelay 500000
-#define CheckOnDelay 100000
-#define DelayMs 1000
-#define MaxPower 10000
-#define CAP_CHARGED 330 // capacitor [V] 95% TODO change value and units 
+#define VoltageTollerance           40      // Temporary value
+#define TorqueDelay                 5       // 5 MilliSec for Each torqe send   // Temporary value
+#define DelayMs                     1000    // Main delay, each ms the main loop on
+#define MaxPower                    10000   // 10000 Watt   // Temporary value
+#define CAP_CHARGED                 330     // capacitor [V] 95% TODO change value and units    // Temporary value
+#define HeartBeatCounterMaxValue    100     //100 ms, if no response from all unit go to error  // Temporary value
+#define CoolingReqTemp              50      // Temporary value
+#define CoolButtonDelay             50      // Temporary value
+#define R2DDelay                    2000
+#define R2D_BUTTON_DELAY            100     // Temporary value
+#define CoolingOff                  0    
+#define CoolingTempHigh             1       // Temporary value
+#define ForcedCoolingVal            2       // Temporary value
+#define MAX_LOW_VOLTAGE             15      // Temporary value
+#define MAX_LOW_CURRENT             5       // Temporary value
+#define MinBrakeR2D                 5       // Temporary value
+#define MIN_SPEED_FOR_DISCHARGE     20      // Temporary value
+#define MIN_SPEED_TO_REV            10      // Temporary value
+#define MIN_BATTERY                 11      // Temporary value
+#define MAX_NOMIMAL_CURRENT         5       // Temporary value  
+#define MAX_TEMPERATURE             60      // Temporary value
+#define NOMIMAL_NUM                 10     
+#define RELAY_DELAY_ERROR           250
+#define LIMP_DIVISION 5
+#define BT_MAX_THROTTLE 50 //half of max throttle brake&Throttle state
+#define BT_MAX_TOQUE 50 // max tourqe brake&Throttle state
+#define TS_VOLTAGE_ON 60 // [volt]
+#define BT_MAX_COUNT 500 //ms
+#define MIN_TPS_THROTTLE 5 //TEMP
+#define MIN_MOTOR_TORQUE 5 //TEMP
 #endif
