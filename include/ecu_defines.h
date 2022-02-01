@@ -49,4 +49,8 @@
 #define MAX_LOW_VOLTAGE 15
 #define MAX_LOW_CURRENT 5
 #define MinBrakeR2D 5
+#define LIMP_DIVISION 5
+#define BT_MAX_THROTTLE 50 //half of max throttle brake&Throttle state
+#define BT_MAX_TOQUE 50 // max tourqe brake&Throttle state
+#define TS_VOLTAGE_ON 60 // [volt]
 #endif

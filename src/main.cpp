@@ -21,7 +21,7 @@ uint8_t Throttle = 0, Brake = 0, Battery_Percent, TS_voltage, TS_current, Acc_te
 uint8_t Charger_flags, voltage_implausibility;
 uint16_t R2DCounter = R2DDelay;
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false, MilliSec = true;
-uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
+uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage,desired_motor_torque, Motor_Torqe, Motor_On, Motor_Voltage;
 static CAN_message_t msg ;
 bool init_skip = false , air_plus = false, charging = false; // first time entering LV state
 int cool = 0 ;
@@ -162,7 +162,12 @@ void loop() {
           break;
 
       case R2D_STATE:
-
+          // init
+          if (!init_skip){
+            digitalWrite(TsoffLed_pin,HIGH);
+            digitalWrite(AvoidDischarge_pin,LOW);
+            init_skip = true;
+          }
           // cooling
           cool= CheckCooling(); // TODO create function
           if (cool!=prev_cool){
@@ -173,7 +178,12 @@ void loop() {
           // change state
           state = LeaveR2D; // TODO create function
           state = HVError(state) ; // check if high voltage error
-
+          if (state!=HV_STATE){ 
+            R2DCounter = R2DDelay;
+            digitalWrite(EnableBuzzer_pin,LOW);
+            ready_to_drive_pressed = false;
+            init_skip = false;
+          } 
           break;
       case FW_STATE:
           // init
@@ -280,19 +290,19 @@ void loop() {
           if (!init_skip){
             //Send Throttle = 0, the function checks the current state
             Send_Tourqe();
-            if (TS_voltage>=60){
+            if (TS_voltage>=TS_VOLTAGE_ON){
               digitalWrite(TsoffLed_pin,LOW);
             }
             init_skip = true;
           }
-          open_relay=WaitDischarge(); // true after 250 milli seconds
+          open_relay=WaitRelay(); // true after 250 milli seconds
           //open shutdown circut if allowed
           if (open_relay || digitalRead(shutdownFB_pin)){
-            digitalWrite(Ecufault_pin);
+            digitalWrite(Ecufault_pin,LOW); // TODO check if it is normally open
           //discharge if allowed
             if (speed<MIN_SPEED_FOR_DISCHARGE) {
               digitalWrite(AvoidDischarge_pin,LOW);
-              if (TS_voltage<60){
+              if (TS_voltage<TS_VOLTAGE_ON){
                 digitalWrite(TsoffLed_pin,HIGH);
           //change state
                 if(AllOk()){ // TODO function
@@ -304,9 +314,31 @@ void loop() {
           }
           break;
 
-      case LIMP_STATE:
-          // do stuff
-          // maybe change state
+      case LIMP_STATE: 
+          // init
+          if (!init_skip){
+            digitalWrite(ForwardMotor_pin,HIGH)
+            init_skip = true;
+          }
+          //Send Limped Tourqe, the function checks the current state
+          Send_Tourqe();
+          // cooling
+          cool= CheckCooling(cool); // TODO create function
+          if (cool!=prev_cool){
+            EnableCooling(cool); //TODO create function
+          }
+          prev_cool = cool;
+          // change state
+          state = CheckLimp(); // TODO create function
+          state = CheckBrakeNThrottle(); // TODO create function
+          if (!digitalRead(ForwardSwitch_pin)){ // if forward ==0
+              state = R2D_STATE;
+          }
+          state = HVError(state) ; // check if high voltage error
+          if (state!=LIMP_STATE){ 
+            digitalWrite(ForwardMotor_pin,LOW);
+            init_skip = false;
+          }       
           break;
 
 

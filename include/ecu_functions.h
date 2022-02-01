@@ -29,11 +29,14 @@ int HVError();
 int CheckHV();
 int CheckCooling(int cool);
 int CheckR2D();
+int CheckBrakeNThrottle();  // 
+int CheckNoThrottle();
 
 void EnableCooling(int cool);
 void DcDcCheck();
 void CheckPowerAnd();
 void HeartBeatAISP();    // AISP - AMS, IVTS, Sevcon, Pedal Controller
+bool AllOk();
 
 extern FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 extern FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2;

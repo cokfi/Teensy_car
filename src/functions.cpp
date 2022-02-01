@@ -173,6 +173,9 @@ void Send_Tourqe() {
   else
   {
     torqe_msg.buf[0] = Throttle;
+    if ((state == LIMP_STATE)||(state == REV_STATE)){
+      torqe_msg.buf[0] = Throttle/LIMP_DIVISION;
+    }
     voltage_implausibility = 0;
   }
   if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE){
@@ -268,6 +271,43 @@ void EnableCooling(int cool){
     digitalWrite(Pump2_pin,LOW);
   }
 }
+int CheckBrakeNThrottle(){
+  if ((hard_brake)&&((Throttle>(BT_MAX_THROTTLE)||(Motor_Torqe>BT_MAX_TOQUE)){
+    bt_counter +=1;
+    if  (bt_counter >=BT_MAX_COUNT){
+      if (state == REV_STATE){
+          return BT_REV_STATE;
+      }
+      else{ // state == FW or LIMP
+          return BT_REV_STATE;
+      }
+      
+    }
+  }
+  //else
+  return state;
+}
+int CheckNoThrottle(){
+if (desired_motor_torque<= MIN_MOTOR_TORQUE)&&(throttle<=MIN_TPS_THROTTLE){
+  if (state==BT_REV_STATE){
+    return REV_STATE;
+  }
+  else{
+    return FW_STATE;
+  }
+}
+//else
+return state;
+}
+
+bool AllOk(){
+  if ((AMSError)||(PedalControllerError)||(Voltage>=TS_VOLTAGE_ON)||(voltage_implausibility)){
+    return false;
+  }
+  //else
+  return true;
+}
+
 void DcDcCheck(){
   if ( (low_voltage < MAX_LOW_VOLTAGE) && (low_current < MAX_LOW_CURRENT) ){ //All good
     //Send can message to DCDC Turn On
