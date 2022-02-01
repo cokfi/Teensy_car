@@ -14,10 +14,8 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 //static CAN_message_t msg;
 CAN_message_t torqe_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
-int state = LV_STATE;
-uint8_t Throttle = 0, Brake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
+uint8_t Throttle = 0, Brake = 0, TPS_Implausibility = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
-bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
 static CAN_message_t msg ;
 int state= LV_STATE;
@@ -113,98 +111,111 @@ void setup(void)
 
 void loop() {
   Can1.events();
-  if MilliSec{
-    switch (state){
 
-      case LV_STATE:
-          // init
-          if (!init_skip){
-            digitalWrite(TsoffLed_pin,HIGH);
-            digitalWrite(discharge_pin,LOW);
-            init_skip = true;
-          }
-          // Ts off led
-          if (air_plus) ||(digitalRead(shutdownFB_pin))||(state==HV_STATE) { //air+ rellay is closed OR Shutdown circut is closed 
-            digitalWrite(TsoffLed_pin,LOW);
-          }
-          // cooling
-          disp_hv_needed = CheckCooling();//TODO pushbutton function
-          // change state
-          state = CheckHV(state);//check if high voltage
-          state = LVError(state);// check if low voltage error
-          if (state!=LV_STATE){ 
-            init_skip = false;
-          } 
-          break;
-      
-      case HV_STATE:
-          // init
-          if (!init_skip){
-            digitalWrite(TsoffLed_pin,LOW);
-            digitalWrite(discharge_pin,LOW);
-            init_skip = true;
-          }
-          // cooling
-          cool= CheckCooling(); // TODO create function
-          if (cool!=prev_cool){
-            EnableCooling(cool); //TODO create function
-          }
-          prev_cool = cool;
-          // capacitor
-          if (Motor_Voltage>CAP_CHARGED){ // capacitor is charged to 95% or higher voltage
-            capacitor_high =true;
-          }
-          // DC-DC  
-          if (low_voltage<MAX_LOW_VOLTAGE)&&(low_current<MAX_LOW_CURRENT){
-            //TODO init counter 
-          }
-          else{
-            //TODO check if counter>= Xseconds enable DCDC
-          }
-          // change state
-          state = CheckR2D(state) ; // check if ready 2 drive
-          state = HVError(state) ; // check if high voltage error
-          if (state!=HV_STATE){ 
-            init_skip = false;
-          } 
-          break;
+  switch (state)
+    {
 
-      case R2D_STATE:
-          // do stuff
-          // maybe change state
-          break;
-      case FW_STATE:
-          // do stuff
-          // maybe change state
-          break;
+    case LV_STATE:
+        // init
+        if (!init_skip){
+          digitalWrite(TsoffLed_pin,HIGH);
+          digitalWrite(discharge_pin,LOW);
+          init_skip = true;
+        }
+        // Ts off led
+        if (air_plus) ||(digitalRead(shutdownFB_pin))||(state==HV_STATE) { //air+ rellay is closed OR Shutdown circut is closed 
+          digitalWrite(TsoffLed_pin,LOW);
+        }
+        // cooling
+        disp_hv_needed = CheckCooling();//TODO pushbutton function
+        // change state
+        state = CheckHV(state);//check if high voltage
+        state = LVError(state);// check if low voltage error
+        if (state!=LV_STATE){ 
+          init_skip = false;
+        } 
+        break;
+    
+    case HV_STATE:
+        // init
+        if (!init_skip){
+          digitalWrite(TsoffLed_pin,LOW);
+          digitalWrite(discharge_pin,LOW);
+          init_skip = true;
+        }
+        // cooling
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
+        // capacitor
+        if (Motor_Voltage>CAP_CHARGED){ // capacitor is charged to 95% or higher voltage
+          capacitor_high =true;
+        }
+        // DC-DC  
+        if (low_voltage<MAX_LOW_VOLTAGE)&&(low_current<MAX_LOW_CURRENT){
+           //TODO init counter 
+        }
+        else{
+          //TODO check if counter>= Xseconds enable DCDC
+        }
+        // change state
+        state = CheckR2D(state) ; // check if ready 2 drive
+        state = HVError(state) ; // check if high voltage error
+        if (state!=HV_STATE){ 
+          init_skip = false;
+        } 
+        break;
 
-      case REV_STATE:
-          // do stuff
-          // maybe change state
-          break;
+    case R2D_STATE:
+    // init
+        if (!init_skip){
 
-      case BT_REV_STATE:
-          // do stuff
-          // maybe change state
-          break;
-      case BT_FW_STATE:
-          // do stuff
-          // maybe change state
-          break;
+          init_skip = true;
+        }
+         // cooling
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
 
-      case ERROR_STATE:
-          // do stuff
-          // maybe change state
-          break;
+        break;
+    case FW_STATE:
+        // do stuff
+        // maybe change state
+        break;
 
-      case LIMP_STATE:
-          // do stuff
-          // maybe change state
-          break;
+    case REV_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case BT_REV_STATE:
+        // do stuff
+        // maybe change state
+        break;
+    case BT_FW_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case ERROR_STATE:
+        // do stuff
+        // maybe change state
+        break;
+
+    case LIMP_STATE:
+        // do stuff
+        // maybe change state
+        break;
 
 
-      // ...
+    // ...
 
     }
-  }
+
+
+ 
 }
