@@ -113,7 +113,7 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
 void CurrentMeasMB(const CAN_message_t &inMsg) {
   IVTSBeat = true;
   Current_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-  nominal_current = CalcNonimal(Current_meas);
+  nominal_current = CalcNonimal();
 }
 void VoltageMeasure1MB(const CAN_message_t &inMsg) {
   IVTSBeat = true;
@@ -174,6 +174,9 @@ void Send_Tourqe() {
   else
   {
     torqe_msg.buf[0] = Throttle;
+    if ((state == LIMP_STATE)||(state == REV_STATE)){
+      torqe_msg.buf[0] = Throttle/LIMP_DIVISION;
+    }
     voltage_implausibility = 0;
   }
   if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE){
@@ -189,9 +192,9 @@ void Send_Tourqe() {
   Can1.write(torqe_msg);    //CANBus write command
 }
 
-int CalcNonimal(uint32_t Current_meas){
-  current_list[index] = Current_meas;
-  index = (index + 1) % NOMIMAL_NUM; // The newest measure, switchs the last measure each time
+int CalcNonimal(){
+  current_list[index_current] = Current_meas;
+  index_current = (index_current + 1) % NOMIMAL_NUM; // The newest measure, switchs the last measure each time
   int sum = 0;
   for (int i=0; i<NOMIMAL_NUM; i++){
     sum +=current_list[i];
@@ -280,6 +283,43 @@ void EnableCooling(int cool){
     digitalWrite(Pump2_pin,LOW);
   }
 }
+int CheckBrakeNThrottle(){
+  if ((hard_brake)&&(Throttle>(BT_MAX_THROTTLE)||(Motor_Torqe>BT_MAX_TOQUE))){
+    bt_counter +=1;
+    if  (bt_counter >=BT_MAX_COUNT){
+      if (state == REV_STATE){
+          return BT_REV_STATE;
+      }
+      else{ // state == FW or LIMP
+          return BT_REV_STATE;
+      }
+      
+    }
+  }
+  //else
+  return state;
+}
+int CheckNoThrottle(){
+if ((desired_motor_torque<= MIN_MOTOR_TORQUE)&&(Throttle<=MIN_TPS_THROTTLE)){
+  if (state==BT_REV_STATE){
+    return REV_STATE;
+  }
+  else{
+    return FW_STATE;
+  }
+}
+//else
+return state;
+}
+
+bool AllOk(){
+  if ((AMSError)||(PedalControllerError)||(Voltage_meas1>=TS_VOLTAGE_ON)||(voltage_implausibility)){
+    return false;
+  }
+  //else
+  return true;
+}
+
 void DcDcCheck(){
   if ( (low_voltage < MAX_LOW_VOLTAGE) && (low_current < MAX_LOW_CURRENT) ){ //All good
     //Send can message to DCDC Turn On
