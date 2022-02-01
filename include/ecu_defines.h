@@ -5,7 +5,7 @@
 #define NUM_TX_MAILBOXES 2
 #define NUM_RX_MAILBOXES 12
 //Output
-#define discharge_pin 17
+#define AvoidDischarge_pin 17
 #define Pump1_pin 6
 #define Pump2_pin 7
 #define TsoffLed_pin  33
