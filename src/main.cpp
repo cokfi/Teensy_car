@@ -26,7 +26,7 @@ int prev_cool =0;
 bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
 bool enabe_dcdc = true ; // 
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
-
+bool open_relay = false;
 
 void setup(void)
 {
@@ -40,7 +40,7 @@ void setup(void)
   Can2.setBaudRate(500000);
   pinMode(13,OUTPUT);
       // initialize the digital pin as an output.
-  pinMode(discharge_pin, OUTPUT);
+  pinMode(AvoidDischarge_pin, OUTPUT);
   pinMode(Pump1_pin, OUTPUT);
   pinMode(Pump2_pin, OUTPUT);
   pinMode(TsoffLed_pin, OUTPUT);
@@ -58,7 +58,7 @@ void setup(void)
   pinMode(ForceCooling_pin, INPUT);
   pinMode(shutdownFB_pin, INPUT);
 
-  myTimer1.begin(Send_Tourqe, TorqueDelay);                            // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
+  //myTimer1.begin(Send_Tourqe, TorqueDelay);                            // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
   myTimer2.begin(HeartBeatAISP, CheckOnDelay);                         // AISP - AMS, IVTS, Sevcon, Pedal Controller
   myTimer3.begin(CheckPowerAnd, DelayMs); 
   // Mailbox setup
@@ -114,12 +114,11 @@ void loop() {
 
   switch (state)
     {
-
     case LV_STATE:
         // init
         if (!init_skip){
           digitalWrite(TsoffLed_pin,HIGH);
-          digitalWrite(discharge_pin,LOW);
+          digitalWrite(AvoidDischarge_pin,LOW);
           init_skip = true;
         }
         // Ts off led
@@ -140,7 +139,7 @@ void loop() {
         // init
         if (!init_skip){
           digitalWrite(TsoffLed_pin,LOW);
-          digitalWrite(discharge_pin,LOW);
+          digitalWrite(AvoidDischarge_pin,LOW);
           init_skip = true;
         }
         // cooling
@@ -154,12 +153,7 @@ void loop() {
           capacitor_high =true;
         }
         // DC-DC  
-        if (low_voltage<MAX_LOW_VOLTAGE)&&(low_current<MAX_LOW_CURRENT){
-           //TODO init counter 
-        }
-        else{
-          //TODO check if counter>= Xseconds enable DCDC
-        }
+        DcDcCheck();
         // change state
         state = CheckR2D(state) ; // check if ready 2 drive
         state = HVError(state) ; // check if high voltage error
@@ -169,9 +163,81 @@ void loop() {
         break;
 
     case R2D_STATE:
-    // init
-        if (!init_skip){
 
+         // cooling
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
+
+        // change state
+        state = LeaveR2D; // TODO create function
+        state = HVError(state) ; // check if high voltage error
+
+        break;
+    case FW_STATE:
+        // init
+        if (!init_skip){
+          digitalWrite(ForwardMotor_pin,HIGH)
+          init_skip = true;
+        }
+        //Send_Tourqe
+        Send_Tourqe();
+         // cooling
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
+        // change state
+        state = CheckLimp(); // TODO create function
+        state = CheckHardBrake(); // TODO create function
+        if (!digitalRead(ForwardSwitch_pin)){ // if forward ==0
+            state = R2D_STATE;
+        }
+        state = HVError(state) ; // check if high voltage error
+        if (state!=FW_STATE){ 
+          digitalWrite(ForwardMotor_pin,LOW);
+          init_skip = false;
+        }         
+        break;
+
+    case REV_STATE:
+        // init
+        if (!init_skip){
+          digitalWrite(ReverseMotor_pin,HIGH)
+          init_skip = true;
+        }
+        //Send_Tourqe
+        Send_Tourqe();
+         // cooling
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
+        // change state
+        state = CheckHardBrake(); // TODO create function
+        if (state == BT_FW_STATE){
+          state = BT_REV_STATE;
+        }
+        
+        if (!digitalRead(ReverseSwitch_pin)){ // if forward ==0
+            state = R2D_STATE;
+        }
+        state = HVError(state) ; // check if high voltage error
+        if (state!=REV_STATE){ 
+          digitalWrite(ReverseMotor_pin,LOW);
+          init_skip = false;
+        }       
+        break;
+
+    case BT_REV_STATE:
+        // init
+        if (!init_skip){
+          //Send Throttle = 0, the function checks the current state
+          Send_Tourqe();
           init_skip = true;
         }
          // cooling
@@ -180,30 +246,63 @@ void loop() {
           EnableCooling(cool); //TODO create function
         }
         prev_cool = cool;
+        // change state
+        state = CheckNoThrottle(); // TODO create function
+        if (state == FW_STATE){
+          state = REV_STATE;
+        }
+        
+        if (!digitalRead(ReverseSwitch_pin)){ // if Reverse ==0
+            state = R2D_STATE;
+        }
+        state = HVError(state) ; // check if high voltage error
+        break;
 
-        break;
-    case FW_STATE:
-        // do stuff
-        // maybe change state
-        break;
-
-    case REV_STATE:
-        // do stuff
-        // maybe change state
-        break;
-
-    case BT_REV_STATE:
-        // do stuff
-        // maybe change state
-        break;
     case BT_FW_STATE:
-        // do stuff
-        // maybe change state
+        //Send Throttle = 0, the function checks the current state
+        Send_Tourqe();
+         // cooling
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
+        // change state
+        state = CheckNoThrottle(); // TODO create function
+        
+        if (!digitalRead(ForwardSwitch_pin)){ // if Forward ==0
+            state = R2D_STATE;
+        }
+        state = HVError(state) ; // check if high voltage error
         break;
 
     case ERROR_STATE:
-        // do stuff
-        // maybe change state
+        // init
+        if (!init_skip){
+          //Send Throttle = 0, the function checks the current state
+          Send_Tourqe();
+          if (TS_voltage>=60){
+            digitalWrite(TsoffLed_pin,LOW);
+          }
+          init_skip = true;
+        }
+        open_relay=WaitDischarge(); // true after 250 milli seconds
+        //open shutdown circut if allowed
+        if (open_relay || digitalRead(shutdownFB_pin)){
+          digitalWrite(Ecufault_pin);
+        //discharge if allowed
+          if (speed<MIN_SPEED_FOR_DISCHARGE) {
+            digitalWrite(AvoidDischarge_pin,LOW);
+            if (TS_voltage<60){
+              digitalWrite(TsoffLed_pin,HIGH);
+        //change state
+              if(AllOk()){ // TODO function
+                state = LV_STATE;
+              }
+            }
+
+          }
+        }
         break;
 
     case LIMP_STATE:
