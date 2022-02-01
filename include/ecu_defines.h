@@ -61,5 +61,7 @@
 #define BT_MAX_THROTTLE 50 //half of max throttle brake&Throttle state
 #define BT_MAX_TOQUE 50 // max tourqe brake&Throttle state
 #define TS_VOLTAGE_ON 60 // [volt]
-
+#define BT_MAX_COUNT 500 //ms
+#define MIN_TPS_THROTTLE 5 //TEMP
+#define MIN_MOTOR_TORQUE 5 //TEMP
 #endif

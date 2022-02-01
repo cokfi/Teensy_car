@@ -113,7 +113,7 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
 void CurrentMeasMB(const CAN_message_t &inMsg) {
   IVTSBeat = true;
   Current_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-  nominal_current = CalcNonimal(Current_meas);
+  nominal_current = CalcNonimal();
 }
 void VoltageMeasure1MB(const CAN_message_t &inMsg) {
   IVTSBeat = true;
@@ -192,9 +192,9 @@ void Send_Tourqe() {
   Can1.write(torqe_msg);    //CANBus write command
 }
 
-int CalcNonimal(uint32_t Current_meas){
-  current_list[index] = Current_meas;
-  index = (index + 1) % NOMIMAL_NUM; // The newest measure, switchs the last measure each time
+int CalcNonimal(){
+  current_list[index_current] = Current_meas;
+  index_current = (index_current + 1) % NOMIMAL_NUM; // The newest measure, switchs the last measure each time
   int sum = 0;
   for (int i=0; i<NOMIMAL_NUM; i++){
     sum +=current_list[i];
@@ -284,7 +284,7 @@ void EnableCooling(int cool){
   }
 }
 int CheckBrakeNThrottle(){
-  if ((hard_brake)&&((Throttle>(BT_MAX_THROTTLE)||(Motor_Torqe>BT_MAX_TOQUE)){
+  if ((hard_brake)&&(Throttle>(BT_MAX_THROTTLE)||(Motor_Torqe>BT_MAX_TOQUE))){
     bt_counter +=1;
     if  (bt_counter >=BT_MAX_COUNT){
       if (state == REV_STATE){
@@ -300,7 +300,7 @@ int CheckBrakeNThrottle(){
   return state;
 }
 int CheckNoThrottle(){
-if (desired_motor_torque<= MIN_MOTOR_TORQUE)&&(throttle<=MIN_TPS_THROTTLE){
+if ((desired_motor_torque<= MIN_MOTOR_TORQUE)&&(Throttle<=MIN_TPS_THROTTLE)){
   if (state==BT_REV_STATE){
     return REV_STATE;
   }
@@ -313,7 +313,7 @@ return state;
 }
 
 bool AllOk(){
-  if ((AMSError)||(PedalControllerError)||(Voltage>=TS_VOLTAGE_ON)||(voltage_implausibility)){
+  if ((AMSError)||(PedalControllerError)||(Voltage_meas1>=TS_VOLTAGE_ON)||(voltage_implausibility)){
     return false;
   }
   //else
