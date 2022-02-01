@@ -15,20 +15,19 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 CAN_message_t torqe_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
 int state = LV_STATE;
+uint8_t HeartBeatCounter = 0, FwRevCouter = 0, CoolButtonCounter = CoolButtonDelay;
+uint8_t low_current =0, low_voltage=0;
 uint8_t Throttle = 0, Brake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
-bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
+uint16_t R2DCounter = R2DDelay;
+bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false, MilliSec = true;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
 static CAN_message_t msg ;
-int state= LV_STATE;
-bool init_skip = false ; // first time entering LV state
-int disp_hv_needed = 0 ; //display to the driver that HV is needed for cooling
+bool init_skip = false , air_plus = false, charging = false; // first time entering LV state
 int cool = 0 ;
 int prev_cool =0;
 bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
 bool enabe_dcdc = true ; // 
-bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
-
 
 void setup(void)
 {
@@ -60,9 +59,7 @@ void setup(void)
   pinMode(ForceCooling_pin, INPUT);
   pinMode(shutdownFB_pin, INPUT);
 
-  myTimer1.begin(Send_Tourqe, TorqueDelay);                            // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
-  myTimer2.begin(HeartBeatAISP, CheckOnDelay);                         // AISP - AMS, IVTS, Sevcon, Pedal Controller
-  myTimer3.begin(CheckPowerAnd, DelayMs); 
+  myTimer1.begin(CheckPowerAnd, DelayMs); 
   // Mailbox setup
   Can1.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); //Configuration of all Recived MB
   Can2.setMaxMB(11); //Configuration of all Recived MB
@@ -106,14 +103,13 @@ void setup(void)
   Can1.mailboxStatus();
   Timer1.initialize(1000000);
   Timer1.attachInterrupt(Interrupt_Routine); 
-  Timer2.initialize(1000000); 
-  Timer3.initialize(1000000);
   
 }
 
 void loop() {
   Can1.events();
-  if MilliSec{
+  if (MilliSec){
+    HeartBeatAISP();
     switch (state){
 
       case LV_STATE:
@@ -124,14 +120,14 @@ void loop() {
             init_skip = true;
           }
           // Ts off led
-          if (air_plus) ||(digitalRead(shutdownFB_pin))||(state==HV_STATE) { //air+ rellay is closed OR Shutdown circut is closed 
+          if ((air_plus) ||(digitalRead(shutdownFB_pin))||(state==HV_STATE)) { //air+ rellay is closed OR Shutdown circut is closed 
             digitalWrite(TsoffLed_pin,LOW);
           }
           // cooling
-          disp_hv_needed = CheckCooling();//TODO pushbutton function
+          cool = CheckCooling(cool);//TODO pushbutton function
           // change state
-          state = CheckHV(state);//check if high voltage
-          state = LVError(state);// check if low voltage error
+          state = CheckHV();//check if high voltage
+          state = LVError();// check if low voltage error
           if (state!=LV_STATE){ 
             init_skip = false;
           } 
@@ -145,7 +141,7 @@ void loop() {
             init_skip = true;
           }
           // cooling
-          cool= CheckCooling(); // TODO create function
+          cool= CheckCooling(cool); // TODO create function
           if (cool!=prev_cool){
             EnableCooling(cool); //TODO create function
           }
@@ -155,15 +151,11 @@ void loop() {
             capacitor_high =true;
           }
           // DC-DC  
-          if (low_voltage<MAX_LOW_VOLTAGE)&&(low_current<MAX_LOW_CURRENT){
-            //TODO init counter 
-          }
-          else{
-            //TODO check if counter>= Xseconds enable DCDC
-          }
+          DcDcCheck();
+
           // change state
-          state = CheckR2D(state) ; // check if ready 2 drive
-          state = HVError(state) ; // check if high voltage error
+          state = CheckR2D(); // check if ready 2 drive
+          state = HVError() ; // check if high voltage error
           if (state!=HV_STATE){ 
             init_skip = false;
           } 
