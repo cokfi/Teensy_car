@@ -312,6 +312,9 @@ void loop() {
 
             }
           }
+          if (state!=ERROR_STATE){ 
+            init_skip = false;
+          }      
           break;
 
       case LIMP_STATE: 
