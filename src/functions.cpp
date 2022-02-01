@@ -88,7 +88,16 @@ void PedalControllerMB(const CAN_message_t &inMsg) {
   }
 }
 
-void HeartBeatAISP(){
+void CheckPowerAnd(){
+  MilliSec = true;
+}
+
+void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
+  if  (HeartBeatCounter != HeartBeatCounterMaxValue){
+    HeartBeatCounter +=1;
+    return;
+  }
+  HeartBeatCounter = 0;
   if (IVTSBeat && SevconBeat && AMSBeat && PedalBeat){
     HeartBeatError = false;
   }
@@ -151,6 +160,11 @@ void Interrupt_Routine(){
 
 
 void Send_Tourqe() {
+  if (FwRevCouter != TorqueDelay){
+    FwRevCouter+=1;
+    return;
+  }
+  FwRevCouter=0;
   if(abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance)  
   {
     torqe_msg.buf[0] = 0;
@@ -160,6 +174,9 @@ void Send_Tourqe() {
   {
     torqe_msg.buf[0] = Throttle;
     voltage_implausibility = 0;
+  }
+  if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE){
+    torqe_msg.buf[0] = 0;
   }
   torqe_msg.id = 0x81;
   torqe_msg.len = 1;
@@ -171,7 +188,7 @@ void Send_Tourqe() {
   Can1.write(torqe_msg);    //CANBus write command
 }
 
-int LVError(state){
+int LVError(){
   if (AMSError){
     state = ERROR_STATE;
   }
@@ -181,10 +198,10 @@ int LVError(state){
   if(abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance) {
     state = ERROR_STATE;
   }
-  return state
+  return state;
 }
 
-int HVError(state){
+int HVError(){
   if (AMSError){
     state = ERROR_STATE;
   }
@@ -199,9 +216,82 @@ int HVError(state){
   }
   if (HeartBeatError){
     state = ERROR_STATE;
-  }Power_meas
+  }
   if (Power_meas> MaxPower){
     state = ERROR_STATE;
   }
-  return state
+  return state;
 }
+
+int CheckHV(){
+  if ((Voltage_meas1 > 60) ||  (Motor_Voltage > 60)){
+    return HV_STATE;
+  } else {
+    return LV_STATE;
+  } 
+}
+
+int CheckCooling(int cool){
+  if (CoolButtonCounter == CoolButtonDelay){
+    if (digitalRead(ForceCooling_pin)){
+      CoolButtonCounter = 0;
+      if (cool == CoolingOff){
+        cool=ForcedCoolingVal;
+      } else {
+        cool=CoolingOff;
+      }
+    }
+  } else{   //CoolButtonCounter != CoolButtonDelay
+    CoolButtonCounter +=1;
+  }
+  if (Temperature_meas > CoolingReqTemp){
+    cool = CoolingTempHigh;
+  }
+  return cool;
+}
+
+void EnableCooling(int cool){
+  if (cool == CoolingTempHigh){
+    digitalWrite(Collingfan1_pin,HIGH);
+    digitalWrite(Collingfan2_pin,HIGH);
+    digitalWrite(Pump1_pin,HIGH);
+    digitalWrite(Pump2_pin,HIGH);
+  } else if (cool == ForcedCoolingVal){
+    digitalWrite(Collingfan1_pin,LOW);
+    digitalWrite(Collingfan2_pin,LOW);
+    digitalWrite(Pump1_pin,HIGH);
+    digitalWrite(Pump2_pin,HIGH);
+  } else{
+    digitalWrite(Collingfan1_pin,LOW);
+    digitalWrite(Collingfan2_pin,LOW);
+    digitalWrite(Pump1_pin,LOW);
+    digitalWrite(Pump2_pin,LOW);
+  }
+}
+void DcDcCheck(){
+  if ( (low_voltage < MAX_LOW_VOLTAGE) && (low_current < MAX_LOW_CURRENT) ){ //All good
+    //Send can message to DCDC Turn On
+  }
+  else{
+    //Send can message to DCDC Turn Off
+  }
+}
+
+int CheckR2D(){
+  if (R2DCounter == R2DDelay){
+    if (digitalRead(R2Dbutton_pin) && Brake > MinBrakeR2D && !digitalRead(ForwardSwitch_pin) && !digitalRead(ReverseSwitch_pin)){
+      if (air_plus && !charging){
+        R2DCounter = 0;  
+        digitalWrite(EnableBuzzer_pin,HIGH);
+      }
+    }
+  } else {    // R2DCounter != R2DDelay
+    R2DCounter +=1;
+    if (R2DCounter == R2DDelay){
+      digitalWrite(EnableBuzzer_pin,LOW);
+      state = R2D_STATE;
+    }
+  }
+  return state;
+}
+

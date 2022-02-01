@@ -35,9 +35,18 @@
 #define LIMP_STATE 9
 // Values
 #define VoltageTollerance 40
-#define TorqueDelay 500000
-#define CheckOnDelay 100000
-#define DelayMs 1000
-#define MaxPower 10000
+#define TorqueDelay 5   // 5 MilliSec for Each torqe send
+#define DelayMs 1000    // Main delay, each ms the main loop on
+#define MaxPower 10000  // 10000 Watt
 #define CAP_CHARGED 330 // capacitor [V] 95% TODO change value and units 
+#define HeartBeatCounterMaxValue 100    //100 ms, if no response from all unit go to error
+#define CoolingReqTemp 50   
+#define CoolButtonDelay 50
+#define R2DDelay 2000
+#define CoolingOff 0
+#define CoolingTempHigh 1
+#define ForcedCoolingVal 2
+#define MAX_LOW_VOLTAGE 15
+#define MAX_LOW_CURRENT 5
+#define MinBrakeR2D 5
 #endif
