@@ -7,7 +7,7 @@
 #include "ecu_defines.h"
 
 
-
+//init
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 
@@ -19,7 +19,17 @@ uint8_t Throttle = 0, Brake = 0, Battery_Percent, TS_voltage, TS_current, Acc_te
 uint8_t Charger_flags, voltage_implausibility;
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
 uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
-static CAN_message_t msg;
+static CAN_message_t msg ;
+int state= LV_STATE;
+bool init_skip = false ; // first time entering LV state
+int disp_hv_needed = 0 ; //display to the driver that HV is needed for cooling
+int cool = 0 ;
+int prev_cool =0;
+bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
+bool enabe_dcdc = true ; // 
+bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false;
+
+
 void setup(void)
 {
   Serial.begin(115200);
@@ -50,7 +60,7 @@ void setup(void)
   pinMode(ForceCooling_pin, INPUT);
   pinMode(shutdownFB_pin, INPUT);
 
-  myTimer1.begin(Send_Tourqe, TorqueDelay);                         // Send CAN messages through SendAnalog every 500ms
+  myTimer1.begin(Send_Tourqe, TorqueDelay);                            // Send CAN messages through SendAnalog every 500ms TODO change to 5ms
   myTimer2.begin(HeartBeatAISP, CheckOnDelay);                         // AISP - AMS, IVTS, Sevcon, Pedal Controller
   myTimer3.begin(CheckPowerAnd, DelayMs); 
   // Mailbox setup
@@ -95,9 +105,10 @@ void setup(void)
   Can1.onReceive(MB11, MotorControllerMB);
   Can1.mailboxStatus();
   Timer1.initialize(1000000);
-  Timer1.attachInterrupt(Interrupt_Routine); // blinkLED to run every 0.15 seconds
+  Timer1.attachInterrupt(Interrupt_Routine); 
   Timer2.initialize(1000000); 
   Timer3.initialize(1000000);
+  
 }
 
 void loop() {
@@ -107,20 +118,60 @@ void loop() {
     {
 
     case LV_STATE:
-        // do stuff
-        // maybe change state
+        // init
+        if (!init_skip){
+          digitalWrite(TsoffLed_pin,HIGH);
+          digitalWrite(discharge_pin,LOW);
+          init_skip = true;
+        }
+        // Ts off led
+        if (air_plus) ||(digitalRead(shutdownFB_pin))||(state==HV_STATE) { //air+ rellay is closed OR Shutdown circut is closed 
+          digitalWrite(TsoffLed_pin,LOW);
+        }
+        // cooling
+        disp_hv_needed = CheckCooling();//TODO pushbutton function
+        // change state
+        state = CheckHV(state);//check if high voltage
+        state = LVError(state);// check if low voltage error
+        if (state!=LV_STATE){ 
+          init_skip = false;
+        } 
         break;
-
+    
     case HV_STATE:
-        // do stuff
-        // maybe change state
+        // init
+        if (!init_skip){
+          digitalWrite(TsoffLed_pin,LOW);
+          digitalWrite(discharge_pin,LOW);
+          init_skip = true;
+        }
+        // cooling
+        cool= CheckCooling(); // TODO create function
+        if (cool!=prev_cool){
+          EnableCooling(cool); //TODO create function
+        }
+        prev_cool = cool;
+        // capacitor
+        if (Motor_Voltage>CAP_CHARGED){ // capacitor is charged to 95% or higher voltage
+          capacitor_high =true;
+        }
+        // DC-DC  
+        if (low_voltage<MAX_LOW_VOLTAGE)&&(low_current<MAX_LOW_CURRENT){
+           //TODO init counter 
+        }
+        else{
+          //TODO check if counter>= Xseconds enable DCDC
+        }
+        // change state
+        state = CheckR2D(state) ; // check if ready 2 drive
+        state = HVError(state) ; // check if high voltage error
+        if (state!=HV_STATE){ 
+          init_skip = false;
+        } 
         break;
 
     case R2D_STATE:
-        
-
-
-
+        // do stuff
         // maybe change state
         break;
     case FW_STATE:
@@ -152,17 +203,11 @@ void loop() {
         // maybe change state
         break;
 
+
     // ...
 
     }
 
 
-  /*
-  // put your main code here, to run repeatedly:
-  digitalWrite(ledPin, HIGH);   // set the LED on
-  delay(1000);                  // wait for a second
-  digitalWrite(ledPin, LOW);    // set the LED off
-  delay(1000);                  // wait for a second
-  */
  
 }
