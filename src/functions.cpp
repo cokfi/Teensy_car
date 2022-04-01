@@ -210,6 +210,9 @@ int LVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
+  if (HeartBeatError){
+    state = ERROR_STATE;
+  }
   if(abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance) {
     state = ERROR_STATE;
   }
@@ -239,7 +242,7 @@ int HVError(){
 }
 
 int CheckHV(){
-  if ((Voltage_meas1 > 60) ||  (Motor_Voltage > 60)){
+  if ((Voltage_meas1 > TS_VOLTAGE_ON) ||  (Motor_Voltage > TS_VOLTAGE_ON)){
     return HV_STATE;
   } else {
     return LV_STATE;
@@ -247,6 +250,7 @@ int CheckHV(){
 }
 
 int CheckCooling(int cool){
+  
   if (CoolButtonCounter == CoolButtonDelay){
     if (digitalRead(ForceCooling_pin)){
       CoolButtonCounter = 0;
@@ -284,14 +288,13 @@ void EnableCooling(int cool){
   }
 }
 int CheckBrakeNThrottle(){
-  if ((hard_brake)&&(Throttle>(BT_MAX_THROTTLE)||(Motor_Torqe>BT_MAX_TOQUE))){
+  if ((hard_brake)&&(Throttle>(BT_MAX_THROTTLE)||(desired_motor_torque>BT_MAX_TOQUE))){ // TODO hard break change to check Brake > #define MIN_HARD_BREAK
     bt_counter +=1;
     if  (bt_counter >=BT_MAX_COUNT){
       if (state == REV_STATE){
           return BT_REV_STATE;
-      }
-      else{ // state == FW or LIMP
-          return BT_REV_STATE;
+      } else { // state == FW or LIMP
+          return BT_FW_STATE;
       }
       
     }
@@ -330,7 +333,7 @@ void DcDcCheck(){
 }
 
 int CheckR2D(){
-  if (R2DCounter == R2DDelay){
+  if (R2DCounter == R2DDelay){ // for kfir cohen on boot R2DCounter == R2DDelay
     if (digitalRead(R2Dbutton_pin) && Brake > MinBrakeR2D && !digitalRead(ForwardSwitch_pin) && !digitalRead(ReverseSwitch_pin)){
       if (air_plus && !charging){
         ready_to_drive_pressed = true;
@@ -360,6 +363,7 @@ int LeaveR2D(){
 }
 
 int CheckLimp(){
+  state = FW_STATE;
   if (Battery_Percent < MIN_BATTERY || nominal_current > MAX_NOMIMAL_CURRENT || Power_meas > MaxPower || Temperature_meas > MAX_TEMPERATURE){
     state = LIMP_STATE;
   }

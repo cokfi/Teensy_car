@@ -51,7 +51,7 @@ extern int state, current_list[NOMIMAL_NUM], index_current,bt_counter,desired_mo
 
 extern uint8_t HeartBeatCounter, FwRevCouter, CoolButtonCounter, R2DButtonCounter, relay_counter;
 extern uint8_t low_current, low_voltage;
-extern uint8_t Throttle , Brake , Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
+extern uint8_t Throttle , Brake , Battery_Percent, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 extern uint8_t Charger_flags, voltage_implausibility;
 extern uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
 extern bool hard_brake, AMSError, PedalControllerError,IVTSBeat, SevconBeat, AMSBeat, PedalBeat, HeartBeatError, TPS_Implausibility, MilliSec, charging, air_plus, ready_to_drive_pressed;
