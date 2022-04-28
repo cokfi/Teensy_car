@@ -81,4 +81,5 @@
 #define BT_MAX_COUNT 500 //ms
 #define MIN_TPS_THROTTLE 5 //TEMP
 #define MIN_MOTOR_TORQUE 5 //TEMP
+#define HARD_BRAKE_VALUE 50 // TEMP
 #endif

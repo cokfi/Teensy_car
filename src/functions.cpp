@@ -301,9 +301,9 @@ void EnableCooling(int cool){
   }
 }
 int CheckBrackNThrottle(){
-  if ((PedalBrake)&&(PedalThrottle>(BT_MAX_THROTTLE)||(desired_motor_torque>BT_MAX_TOQUE))){
+  if ((PedalBrake > HARD_BRAKE_VALUE)&&(PedalThrottle>(BT_MAX_THROTTLE)||(desired_motor_torque>BT_MAX_TOQUE))){
     bt_counter +=1;
-    if  (bt_counter >=BT_MAX_COUNT){
+    if  (bt_counter >= BT_MAX_COUNT ){
       if (state == REV_STATE){
           return BT_REV_STATE;
       }
