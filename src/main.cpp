@@ -16,20 +16,20 @@ CAN_message_t torqe_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
 int state = LV_STATE;
 uint8_t HeartBeatCounter = 0, FwRevCouter = 0, CoolButtonCounter = CoolButtonDelay, relay_counter = 0;
-uint8_t low_current =0, low_voltage=0;
-uint8_t Throttle = 0, Brake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
+uint8_t DcdcLowCurrent =0, DcdcLowVoltage=0;
+uint8_t PedalThrottle = 0, PedalBrake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
-uint16_t R2DCounter = R2DDelay, velocity = 0, nominal_current = 0;
+uint16_t R2DCounter = R2DDelay, velocity = 0, NominalCurrent = 0;
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false, MilliSec = true;
-uint32_t Power_meas, Temperature_meas, Current_meas, Voltage_meas1, Voltage_meas2, Voltage_meas3, Battery_Voltage, Motor_Torqe, Motor_On, Motor_Voltage;
+uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, Battery_Voltage, Motor_Torqe, Motor_On, MotorVoltage;
+uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 static CAN_message_t msg ;
-bool init_skip = false , air_plus = false, charging = false, ready_to_drive_pressed = false; // first time entering LV state
+bool init_skip = false , air_plus = false, charging = false, ready_to_drive_pressed = false, DcdcOn = false; // first time entering LV state
 int cool = 0 , current_list[NOMIMAL_NUM], index_current = 0;
 int prev_cool =0, bt_counter=0,desired_motor_torque=0;
 bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
 bool enable_dcdc = true ; // 
 bool open_relay = false;
-bool hard_brake = false;// TODO calculate hard_brake
 
 
 void setup(void)
@@ -38,10 +38,28 @@ void setup(void)
   int iSerialTimeout = 1000000;
   delay(100);
   while (!Serial && (iSerialTimeout-- != 0));
-  Can1.begin();
+  ////// Can2 Configurations /////
   Can2.begin();
-  Can1.setBaudRate(500000);// I like to set the baud rates just to be on the safe side
   Can2.setBaudRate(500000);
+  Can2.enableFIFO();
+	Can2.enableFIFOInterrupt();
+	Can2.setFIFOFilter(REJECT_ALL);
+  Can2.setFIFOFilterRange(0, 0x102,0x105, STD);
+	Can2.onReceive(FIFO, CAN2_Unpack);
+  ////// Can1 Configurations /////
+  Can1.begin();
+  Can1.setBaudRate(500000);// I like to set the baud rates just to be on the safe side
+  Can1.enableFIFO();
+	Can1.enableFIFOInterrupt();
+  Can1.setFIFOFilter(REJECT_ALL);  // For filter Config
+	Can1.setFIFOFilter(0, PEDAL_CONTROLLER_ID, STD);   // PedalController
+  Can1.setFIFOFilterRange(1, IVTS_CURRENT_ID,IVTS_VOLTAGE_ID, STD);  // IVTS current and voltage meas 
+  Can1.setFIFOFilterRange(2, IVTS_TEMP_ID,IVTS_POWER_ID, STD);  // IVTS Temperature and power meas
+  Can1.setFIFOFilterRange(3, AMS_ERROR_ID,AMS_CHARGING_ID, STD);  // AMS masseges
+  Can1.setFIFOFilterRange(4, LOGGER_START_ID,LOGGER_END_ID, STD);  // DataLogger masseges
+  Can1.setFIFOFilterRange(5, DCDC_ON_ID,DCDC_Meas_ID, STD);  // DCDC masseges
+	Can1.onReceive(FIFO, CAN1_Unpack);
+
   pinMode(13,OUTPUT);
       // initialize the digital pin as an output.
   pinMode(AvoidDischarge_pin, OUTPUT);
@@ -63,47 +81,6 @@ void setup(void)
   pinMode(shutdownFB_pin, INPUT);
 
   myTimer1.begin(CheckPowerAnd, DelayMs); 
-  // Mailbox setup
-  Can1.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); //Configuration of all Recived MB
-  Can2.setMaxMB(11); //Configuration of all Recived MB
-  for (uint8_t i = 0; i < NUM_RX_MAILBOXES; i++) {
-    Can1.setMB(i, RX, STD);
-  }
-  Can1.setMBFilter(REJECT_ALL);
-  Can1.enableMBInterrupts(); // enables all mailboxes to be interrupt enabled
-  Can2.setMBFilter(REJECT_ALL);
-  Can2.enableMBInterrupts(); // enables all mailboxes to be interrupt enabled
-
-  // Set mailbox 0-11 to allow CAN IDs to be collected.
-  Can1.setMBFilter(MB0, 0x40);
-  Can1.setMBFilter(MB1, 0x521);
-  Can1.setMBFilter(MB2, 0x522);
-  Can1.setMBFilter(MB3, 0x523);
-  Can1.setMBFilter(MB4, 0x524);
-  Can1.setMBFilter(MB5, 0x525);
-  Can1.setMBFilter(MB6, 0x526);
-  Can1.setMBFilter(MB7, 0x624);
-  Can1.setMBFilter(MB8, 0x324);
-  Can1.setMBFilter(MB9, 0x626);
-  Can1.setMBFilter(MB10, 0x627);
-  Can1.setMBFilter(MB11, 0x80);
-
-
-
-// allows mailbox messages to be received in the supplied callbacks.
-  Can1.onReceive(MB0, PedalControllerMB);
-  Can1.onReceive(MB1, CurrentMeasMB);
-  Can1.onReceive(MB2, VoltageMeasure1MB);
-  Can1.onReceive(MB3, VoltageMeasure2MB);
-  Can1.onReceive(MB4, VoltageMeasure3MB);
-  Can1.onReceive(MB5, TemperatureMeasureMB);
-  Can1.onReceive(MB6, PowerMeasure);
-  Can1.onReceive(MB7, BatteryStateMB);
-  Can1.onReceive(MB8, BatterySOCPercentMB);
-  Can1.onReceive(MB9, BatteryVoltageMB);
-  Can1.onReceive(MB10, ChargerFlagsMB);
-  Can1.onReceive(MB11, MotorControllerMB);
-  Can1.mailboxStatus();
   Timer1.initialize(1000000);
   Timer1.attachInterrupt(Interrupt_Routine); 
   
@@ -150,7 +127,7 @@ void loop() {
           }
           prev_cool = cool;
           // capacitor
-          if (Motor_Voltage>CAP_CHARGED){ // capacitor is charged to 95% or higher voltage
+          if (MotorVoltage>CAP_CHARGED){ // capacitor is charged to 95% or higher voltage
             capacitor_high =true;
           }
           // DC-DC  
@@ -203,7 +180,7 @@ void loop() {
           prev_cool = cool;
           // change state
           state = CheckLimp(); // TODO create function
-          state = CheckBrakeNThrottle(); // TODO create function
+          state = CheckBrackNThrottle(); // TODO create function
           if (!digitalRead(ForwardSwitch_pin)){ // if forward ==0
               state = R2D_STATE;
           }
@@ -229,7 +206,7 @@ void loop() {
           }
           prev_cool = cool;
           // change state
-          state = CheckBrakeNThrottle(); // TODO create function
+          state = CheckBrackNThrottle(); // TODO create function
           if (state == BT_FW_STATE){
             state = BT_REV_STATE;
           }
@@ -335,7 +312,7 @@ void loop() {
           prev_cool = cool;
           // change state
           state = CheckLimp(); // TODO create function
-          state = CheckBrakeNThrottle(); // TODO create function
+          state = CheckBrackNThrottle(); // TODO create function
           if (!digitalRead(ForwardSwitch_pin)){ // if forward ==0
               state = R2D_STATE;
           }
