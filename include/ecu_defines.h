@@ -1,9 +1,26 @@
 #ifndef ecu_defines_h
 #define ecu_defines_h
 
-//mailboxes
-#define NUM_TX_MAILBOXES 2
-#define NUM_RX_MAILBOXES 12
+//Canbus ID
+// Can 1
+#define PEDAL_CONTROLLER_ID     0x40
+
+#define IVTS_CURRENT_ID         0x521
+#define IVTS_VOLTAGE_ID         0x522
+#define IVTS_TEMP_ID            0x525
+#define IVTS_POWER_ID           0x526
+
+#define AMS_ERROR_ID            0x124
+#define AMS_PRECHARGE_DONE_ID   0x125
+#define AMS_CHARGING_ID         0x126
+
+#define LOGGER_START_ID         0x300
+#define LOGGER_END_ID           0x301
+
+#define DCDC_ON_ID              0x18D
+#define DCDC_Meas_ID            0x28D
+// Can 2
+#define 
 //Output
 #define AvoidDischarge_pin 17
 #define Pump1_pin 6
