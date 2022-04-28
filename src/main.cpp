@@ -12,7 +12,7 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 
 //static CAN_message_t msg;
-CAN_message_t torqe_msg;
+CAN_message_t Torque_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
 int state = LV_STATE;
 uint8_t HeartBeatCounter = 0, FwRevCouter = 0, CoolButtonCounter = CoolButtonDelay, relay_counter = 0;
@@ -21,7 +21,7 @@ uint8_t PedalThrottle = 0, PedalBrake = 0, Battery_Percent, TS_voltage, TS_curre
 uint8_t Charger_flags, voltage_implausibility;
 uint16_t R2DCounter = R2DDelay, velocity = 0, NominalCurrent = 0;
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false, MilliSec = true;
-uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, Battery_Voltage, Motor_Torqe, Motor_On, MotorVoltage;
+uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, Battery_Voltage, MotorTorque, Motor_On, MotorVoltage;
 uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 static CAN_message_t msg ;
 bool init_skip = false , air_plus = false, charging = false, ready_to_drive_pressed = false, DcdcOn = false; // first time entering LV state
@@ -44,7 +44,7 @@ void setup(void)
   Can2.enableFIFO();
 	Can2.enableFIFOInterrupt();
 	Can2.setFIFOFilter(REJECT_ALL);
-  Can2.setFIFOFilterRange(0, 0x102,0x105, STD);
+  Can2.setFIFOFilterRange(0, MOTOR_THROTTLE_ID,MOTOR_VELOCITY_ID, STD);
 	Can2.onReceive(FIFO, CAN2_Unpack);
   ////// Can1 Configurations /////
   Can1.begin();
@@ -170,8 +170,8 @@ void loop() {
             digitalWrite(ForwardMotor_pin,HIGH);
             init_skip = true;
           }
-          //Send_Tourqe
-          Send_Tourqe();
+          //Send_Torque
+          Send_Torque();
           // cooling
           cool= CheckCooling(cool); // TODO create function
           if (cool!=prev_cool){
@@ -197,8 +197,8 @@ void loop() {
             digitalWrite(ReverseMotor_pin,HIGH);
             init_skip = true;
           }
-          //Send_Tourqe
-          Send_Tourqe();
+          //Send_Torque
+          Send_Torque();
           // cooling
           cool= CheckCooling(cool); // TODO create function
           if (cool!=prev_cool){
@@ -225,7 +225,7 @@ void loop() {
           // init
           if (!init_skip){
             //Send Throttle = 0, the function checks the current state
-            Send_Tourqe();
+            Send_Torque();
             init_skip = true;
           }
           // cooling
@@ -248,7 +248,7 @@ void loop() {
 
       case BT_FW_STATE:
           //Send Throttle = 0, the function checks the current state
-          Send_Tourqe();
+          Send_Torque();
           // cooling
           cool= CheckCooling(cool); // TODO create function
           if (cool!=prev_cool){
@@ -268,7 +268,7 @@ void loop() {
           // init
           if (!init_skip){
             //Send Throttle = 0, the function checks the current state
-            Send_Tourqe();
+            Send_Torque();
             if (TS_voltage>=TS_VOLTAGE_ON){
               digitalWrite(TsoffLed_pin,LOW);
             }
@@ -302,8 +302,8 @@ void loop() {
             digitalWrite(ForwardMotor_pin,HIGH);
             init_skip = true;
           }
-          //Send Limped Tourqe, the function checks the current state
-          Send_Tourqe();
+          //Send Limped Torque, the function checks the current state
+          Send_Torque();
           // cooling
           cool= CheckCooling(cool); // TODO create function
           if (cool!=prev_cool){

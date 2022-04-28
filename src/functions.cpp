@@ -17,12 +17,6 @@ void Status_Print() {
   Serial.print("Voltage measure 1: ");
   Serial.print(IvtsVoltage);
   Serial.println(" [mV]");
-  Serial.print("Voltage measure 2: ");
-  Serial.print(Voltage_meas2);
-  Serial.println(" [mV]");
-  Serial.print("Voltage measure 3: ");
-  Serial.print(Voltage_meas3);
-  Serial.println(" [mV]");
   Serial.print("Temperature measure: ");
   Serial.print(IvtsTemperature);
   Serial.println(" [C]");
@@ -40,8 +34,8 @@ void Status_Print() {
   Serial.print("Charger flag: ");
   Serial.println(Charger_flags);
   
-  Serial.print("Motor torqe: ");
-  Serial.print(Motor_Torqe);
+  Serial.print("Motor Torque: ");
+  Serial.print(MotorTorque);
   Serial.println(" [%]");
   Serial.print("Motor on flag: ");
   Serial.println(Motor_On);
@@ -140,7 +134,18 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
 
 void CAN2_Unpack(const CAN_message_t &inMsg) {
   switch(inMsg.id){
-    
+    case MOTOR_THROTTLE_ID:
+
+      break;
+    case MOTOR_TORQUE_ID:
+
+      break;
+    case MOTOR_CAP_VOLTAGE_ID:
+
+      break;
+    case MOTOR_VELOCITY_ID:
+
+      break;
   }
 }
 
@@ -168,7 +173,7 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
 
 void MotorControllerMB(const CAN_message_t &inMsg) {
   SevconBeat = true;
-  Motor_Torqe = inMsg.buf[0];
+  MotorTorque = inMsg.buf[0];
   Motor_On = inMsg.buf[1];
   MotorVoltage = (inMsg.buf[2] << 8) + inMsg.buf[3];
 }
@@ -177,7 +182,7 @@ void Interrupt_Routine(){
 }
 
 
-void Send_Tourqe() {
+void Send_Torque() {
   if (FwRevCouter != TorqueDelay){
     FwRevCouter+=1;
     return;
@@ -185,28 +190,28 @@ void Send_Tourqe() {
   FwRevCouter=0;
   if(abs(MotorVoltage - (IvtsVoltage/1000)) > VoltageTollerance)  
   {
-    torqe_msg.buf[0] = 0;
+    Torque_msg.buf[0] = 0;
     voltage_implausibility = 1;  
   }
   else
   {
-    torqe_msg.buf[0] = PedalThrottle;
+    Torque_msg.buf[0] = PedalThrottle;
     if ((state == LIMP_STATE)||(state == REV_STATE)){
-      torqe_msg.buf[0] = PedalThrottle/LIMP_DIVISION;
+      Torque_msg.buf[0] = PedalThrottle/LIMP_DIVISION;
     }
     voltage_implausibility = 0;
   }
   if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE){
-    torqe_msg.buf[0] = 0;
+    Torque_msg.buf[0] = 0;
   }
-  torqe_msg.id = 0x111;
-  torqe_msg.len = 1;
-  torqe_msg.flags.extended = 0;
-  torqe_msg.flags.remote   = 0;
-  torqe_msg.flags.overrun  = 0;
-  torqe_msg.flags.reserved = 0;
+  Torque_msg.id = 0x111;
+  Torque_msg.len = 1;
+  Torque_msg.flags.extended = 0;
+  Torque_msg.flags.remote   = 0;
+  Torque_msg.flags.overrun  = 0;
+  Torque_msg.flags.reserved = 0;
   
-  Can2.write(torqe_msg);    //CANBus write command
+  Can2.write(Torque_msg);    //CANBus write command
 }
 
 int CalcNominal(){
@@ -338,7 +343,7 @@ bool AllOk(){
 }
 
 void DcDcCheck(){
-  if ( (DcdcLowVoltage < MAX_DcdcLowVoltage) && (DcdcLowCurrent < MAX_DcdcLowCurrent) ){ //All good
+  if ( (DcdcLowVoltage < MAX_LOW_VOLTAGE) && (DcdcLowCurrent < MAX_LOW_CURRENT) ){ //All good
     //Send can message to DCDC Turn On
   }
   else{
