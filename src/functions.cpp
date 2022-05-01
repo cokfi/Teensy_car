@@ -134,16 +134,16 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
 
 void CAN2_Unpack(const CAN_message_t &inMsg) {
   switch(inMsg.id){
-    case MOTOR_THROTTLE_ID:
+    case SEVCON_THROTTLE_ID:
 
       break;
-    case MOTOR_TORQUE_ID:
+    case SEVCON_TORQUE_ID:
 
       break;
-    case MOTOR_CAP_VOLTAGE_ID:
+    case SEVCON_CAP_VOLTAGE_ID:
 
       break;
-    case MOTOR_VELOCITY_ID:
+    case SEVCON_VELOCITY_ID:
 
       break;
   }

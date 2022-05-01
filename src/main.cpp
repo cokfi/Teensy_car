@@ -44,7 +44,7 @@ void setup(void)
   Can2.enableFIFO();
 	Can2.enableFIFOInterrupt();
 	Can2.setFIFOFilter(REJECT_ALL);
-  Can2.setFIFOFilterRange(0, MOTOR_THROTTLE_ID,MOTOR_VELOCITY_ID, STD);
+  Can2.setFIFOFilterRange(0, SEVCON_THROTTLE_ID,SEVCON_VELOCITY_ID, STD);
 	Can2.onReceive(FIFO, CAN2_Unpack);
   ////// Can1 Configurations /////
   Can1.begin();

@@ -20,10 +20,10 @@
 #define DCDC_ON_ID              0x18D
 #define DCDC_Meas_ID            0x28D
 // Can 2
-#define MOTOR_THROTTLE_ID       0x102
-#define MOTOR_TORQUE_ID         0x103
-#define MOTOR_CAP_VOLTAGE_ID    0x104
-#define MOTOR_VELOCITY_ID       0x105
+#define SEVCON_THROTTLE_ID       0x102
+#define SEVCON_TORQUE_ID         0x103
+#define SEVCON_CAP_VOLTAGE_ID    0x104
+#define SEVCON_VELOCITY_ID       0x105
 //Output
 #define AvoidDischarge_pin 17
 #define Pump1_pin 6
