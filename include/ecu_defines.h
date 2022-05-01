@@ -39,9 +39,13 @@
 //Input
 #define ForwardSwitch_pin 12
 #define ReverseSwitch_pin 24
-#define R2Dbutton_pin 29
-#define ForceCooling_pin 30
-#define shutdownFB_pin 15
+#define R2Dbutton_pin     29
+#define ForceCooling_pin  30
+#define shutdownFB_pin    15
+// Scaling
+#define SEVCON_SCALE_VOLTAGE  0.0625
+#define IVTS_SCALE_VOLTAGE    10/9894
+#define TPS_2_SEVCON_SCALE    10      
 
 //states
 #define LV_STATE 1 // low voltage state

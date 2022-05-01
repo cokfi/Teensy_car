@@ -19,9 +19,14 @@ uint8_t HeartBeatCounter = 0, FwRevCouter = 0, CoolButtonCounter = CoolButtonDel
 uint8_t DcdcLowCurrent =0, DcdcLowVoltage=0;
 uint8_t PedalThrottle = 0, PedalBrake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;
+//////////// Sevcon/////////////
+uint8_t SevconHeatSink;
+uint16_t  SevconThrottle, SevconDesiredTorque,SevconActualTorqueNM, SevconTemperature, SevconCapVoltage, SevconSpeed;
+uint32_t SevconVelocity;
+/////////////////////////////
 uint16_t R2DCounter = R2DDelay, velocity = 0, NominalCurrent = 0;
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false, MilliSec = true;
-uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, Battery_Voltage, MotorTorque, Motor_On, MotorVoltage;
+uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, AMSBatteryVoltage, MotorTorque, Motor_On, MotorVoltage;
 uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 static CAN_message_t msg ;
 bool init_skip = false , air_plus = false, charging = false, ready_to_drive_pressed = false, DcdcOn = false; // first time entering LV state
@@ -89,6 +94,7 @@ void setup(void)
 void loop() {
   Can1.events();
   if (MilliSec){
+    PatchForTorqueTest();
     HeartBeatAISP();
     switch (state)
       {

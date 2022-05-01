@@ -29,18 +29,16 @@ void Status_Print() {
   Serial.print(Battery_SOC_percent);
   Serial.println(" [%]");
   Serial.print("Battery Voltage: ");
-  Serial.print(Battery_Voltage);
+  Serial.print(AMSBatteryVoltage);
   Serial.println(" [mA]");
   Serial.print("Charger flag: ");
   Serial.println(Charger_flags);
   
   Serial.print("Motor Torque: ");
-  Serial.print(MotorTorque);
+  Serial.print(SevconActualTorque);
   Serial.println(" [%]");
-  Serial.print("Motor on flag: ");
-  Serial.println(Motor_On);
   Serial.print("Motor voltage: ");
-  Serial.print(MotorVoltage);
+  Serial.print(SevconCapVoltage);
   Serial.println(" [V]");
   Serial.print("Voltage implausibility: ");
   Serial.println(voltage_implausibility);
@@ -91,7 +89,7 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
       break;
     case IVTS_VOLTAGE_ID:
       IVTSBeat = true;
-      IvtsVoltage = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
+      IvtsVoltage = (IVTS_SCALE_VOLTAGE)*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
       break;
     case IVTS_TEMP_ID:
       IVTSBeat = true;
@@ -103,14 +101,18 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
       IvtsPower = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
       break;
     case AMS_ERROR_ID:
+      AMSBeat    = true;
       if (inMsg.buf[2] !=0  ||  inMsg.buf[1] !=0) AMSError =true;
       else AMSError = false;
       // Check if we need Minimum cell boltage Battery SOC and etc
       break;
     case AMS_PRECHARGE_DONE_ID:
+      AMSBeat    = true;
+      AMSBatteryVoltage = (inMsg.buf[0] << 24) + (inMsg.buf[1] << 16) + (inMsg.buf[2] << 8) + inMsg.buf[3];
       // Check if we need Battery voltage TODO add Air+ status
       break;
     case AMS_CHARGING_ID:
+      AMSBeat    = true;
       // TODO check how this masseges are sent from AMS
       break;
     case LOGGER_START_ID: 
@@ -133,18 +135,24 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
 };
 
 void CAN2_Unpack(const CAN_message_t &inMsg) {
+  SevconBeat = true; //  All Can2 Masseges comes from SEVCON
   switch(inMsg.id){
     case SEVCON_THROTTLE_ID:
-
+      SevconThrottle = (inMsg.buf[0] << 8) + inMsg.buf[1];  // 0.1%
+      SevconActualTorque = (inMsg.buf[2] << 8) + inMsg.buf[3];  // 0.1%
       break;
     case SEVCON_TORQUE_ID:
-
+      SevconDesiredTorque = (inMsg.buf[2] << 8) + inMsg.buf[3];  // 0.1% 
+      SevconActualTorqueNM = (inMsg.buf[4] << 8) + inMsg.buf[5];  // 0.0625[NM]
+      SevconTemperature = (inMsg.buf[6] << 8) + inMsg.buf[7];  // 1[C]  
       break;
     case SEVCON_CAP_VOLTAGE_ID:
-
+      SevconCapVoltage = SEVCON_SCALE_VOLTAGE*((inMsg.buf[0] << 8) + inMsg.buf[1]);  // 0.0625[V]
+      SevconHeatSink   = inMsg.buf[2];  // 0.0625 1[C]
       break;
     case SEVCON_VELOCITY_ID:
-
+      SevconVelocity = (inMsg.buf[0] << 24) + (inMsg.buf[1] << 16) + (inMsg.buf[2] << 8) + inMsg.buf[3];  // 1[RPM]
+      SevconSpeed = (inMsg.buf[4] << 8) + inMsg.buf[5]  // 0.0625[kph]
       break;
   }
 }
@@ -171,12 +179,6 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
   PedalBeat  = false;
 }
 
-void MotorControllerMB(const CAN_message_t &inMsg) {
-  SevconBeat = true;
-  MotorTorque = inMsg.buf[0];
-  Motor_On = inMsg.buf[1];
-  MotorVoltage = (inMsg.buf[2] << 8) + inMsg.buf[3];
-}
 void Interrupt_Routine(){
   Status_Print();
 }
@@ -188,16 +190,16 @@ void Send_Torque() {
     return;
   }
   FwRevCouter=0;
-  if(abs(MotorVoltage - (IvtsVoltage/1000)) > VoltageTollerance)  
+  if(abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance)  
   {
     Torque_msg.buf[0] = 0;
     voltage_implausibility = 1;  
   }
   else
   {
-    Torque_msg.buf[0] = PedalThrottle;
+    Torque_msg.buf[0] = TPS_2_SEVCON_SCALE*PedalThrottle; // Sevcon scale is 0.1% Pedal Controller scale is 1%
     if ((state == LIMP_STATE)||(state == REV_STATE)){
-      Torque_msg.buf[0] = PedalThrottle/LIMP_DIVISION;
+      Torque_msg.buf[0] = TPS_2_SEVCON_SCALE*PedalThrottle/LIMP_DIVISION; // Sevcon scale is 0.1% Pedal Controller scale is 1%, Limp division avoids high power consumption
     }
     voltage_implausibility = 0;
   }
@@ -232,7 +234,7 @@ int LVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if(abs(MotorVoltage - (IvtsVoltage/1000)) > VoltageTollerance) {
+  if(abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   return state;
@@ -245,7 +247,7 @@ int HVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if (abs(MotorVoltage - (IvtsVoltage/1000)) > VoltageTollerance) {
+  if (abs(SevconCapVoltage - (IvtsVoltage/1000)) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   if (!digitalRead(shutdownFB_pin)){
@@ -261,7 +263,7 @@ int HVError(){
 }
 
 int CheckHV(){
-  if ((IvtsVoltage > 60) ||  (MotorVoltage > 60)){
+  if ((IvtsVoltage > TS_VOLTAGE_ON) ||  (SevconCapVoltage > TS_VOLTAGE_ON)){  // If any of the IVTS voltage measurment or the Sevcon Capacitor voltage higher the 60v
     return HV_STATE;
   } else {
     return LV_STATE;
