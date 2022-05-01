@@ -42,12 +42,13 @@ extern uint8_t HeartBeatCounter, FwRevCouter, CoolButtonCounter, R2DButtonCounte
 extern uint8_t DcdcLowCurrent, DcdcLowVoltage;
 extern uint8_t PedalThrottle , PedalBrake , Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 extern uint8_t Charger_flags, voltage_implausibility;
-extern uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, AMSBatteryVoltage, SevconActualTorque, Motor_On, MotorVoltage;
+extern uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, AMSBatteryVoltage;
 extern bool AMSError, PedalControllerError,IVTSBeat, SevconBeat, AMSBeat, PedalBeat, HeartBeatError, TPS_Implausibility, MilliSec, charging, air_plus, ready_to_drive_pressed, DcdcOn;
 extern uint16_t R2DCounter, velocity, NominalCurrent;
 extern uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 //////////////// Sevcon //////////////////
 extern uint8_t SevconHeatSink;
-extern uint16_t SevconThrottle, SevconDesiredTorque, SevconActualTorqueNM, SevconTemperature, SevconCapVoltage, SevconSpeed;
-extern uint32_t SevconVelocity;
+extern uint16_t SevconTemperature, SevconCapVoltage, SevconSpeed;
+extern int16_t SevconActualTorqueNM, SevconActualTorque,SevconDesiredTorque,SevconThrottle;
+extern int32_t SevconVelocity;
 #endif

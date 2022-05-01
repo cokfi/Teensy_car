@@ -152,7 +152,7 @@ void CAN2_Unpack(const CAN_message_t &inMsg) {
       break;
     case SEVCON_VELOCITY_ID:
       SevconVelocity = (inMsg.buf[0] << 24) + (inMsg.buf[1] << 16) + (inMsg.buf[2] << 8) + inMsg.buf[3];  // 1[RPM]
-      SevconSpeed = (inMsg.buf[4] << 8) + inMsg.buf[5]  // 0.0625[kph]
+      SevconSpeed = (inMsg.buf[4] << 8) + inMsg.buf[5];  // 0.0625[kph]
       break;
   }
 }
@@ -399,4 +399,11 @@ bool WaitRelay(){
     ready = true;
   }
   return ready;
+}
+
+void PatchForTorqueTest(){
+  if  (SevconCapVoltage > 300){
+    PedalThrottle = 20;
+    Send_Torque();
+  }
 }

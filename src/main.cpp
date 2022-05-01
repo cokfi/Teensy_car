@@ -21,14 +21,15 @@ uint8_t PedalThrottle = 0, PedalBrake = 0, Battery_Percent, TS_voltage, TS_curre
 uint8_t Charger_flags, voltage_implausibility;
 //////////// Sevcon/////////////
 uint8_t SevconHeatSink;
-uint16_t  SevconThrottle, SevconDesiredTorque,SevconActualTorqueNM, SevconTemperature, SevconCapVoltage, SevconSpeed;
-uint32_t SevconVelocity;
+uint16_t  SevconTemperature, SevconCapVoltage, SevconSpeed;
+int16_t SevconActualTorqueNM, SevconActualTorque,SevconDesiredTorque,SevconThrottle;
+int32_t SevconVelocity;
 /////////////////////////////
 uint16_t R2DCounter = R2DDelay, velocity = 0, NominalCurrent = 0;
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false, MilliSec = true;
 uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, AMSBatteryVoltage, MotorTorque, Motor_On, MotorVoltage;
 uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
-static CAN_message_t msg ;
+CAN_message_t msg ;
 bool init_skip = false , air_plus = false, charging = false, ready_to_drive_pressed = false, DcdcOn = false; // first time entering LV state
 int cool = 0 , current_list[NOMIMAL_NUM], index_current = 0;
 int prev_cool =0, bt_counter=0,desired_motor_torque=0;
@@ -95,6 +96,7 @@ void loop() {
   Can1.events();
   if (MilliSec){
     PatchForTorqueTest();
+    if (false){
     HeartBeatAISP();
     switch (state)
       {
@@ -161,7 +163,7 @@ void loop() {
           prev_cool = cool;
 
           // change state
-          state = LeaveR2D; // TODO create function
+          state = LeaveR2D(); // TODO create function
           state = HVError() ; // check if high voltage error
           if (state!=HV_STATE){ 
             R2DCounter = R2DDelay;
@@ -330,7 +332,7 @@ void loop() {
           break;
 
 
-  
+      };
     }
   } 
 }
