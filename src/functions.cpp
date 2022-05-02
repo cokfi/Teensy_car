@@ -5,29 +5,23 @@
 // -------------------------------------------------------------
 void Status_Print() {
   Serial.println("=====================system status=======================");
-  Serial.print("Throttle: ");
-  Serial.print(Throttle);
+  Serial.print("PedalThrottle: ");
+  Serial.print(PedalThrottle);
   Serial.println(" [%]");
-  Serial.print("Brake: ");
-  Serial.print(Brake);
+  Serial.print("PedalBrake: ");
+  Serial.print(PedalBrake);
   Serial.println(" [%]");
   Serial.print("current: ");
-  Serial.print(Current_meas);
+  Serial.print(IvtsCurrent);
   Serial.println(" [mA]");
   Serial.print("Voltage measure 1: ");
-  Serial.print(Voltage_meas1);
-  Serial.println(" [mV]");
-  Serial.print("Voltage measure 2: ");
-  Serial.print(Voltage_meas2);
-  Serial.println(" [mV]");
-  Serial.print("Voltage measure 3: ");
-  Serial.print(Voltage_meas3);
+  Serial.print(IvtsVoltage);
   Serial.println(" [mV]");
   Serial.print("Temperature measure: ");
-  Serial.print(Temperature_meas);
+  Serial.print(IvtsTemperature);
   Serial.println(" [C]");
   Serial.print("Power measure: ");
-  Serial.print(Power_meas);
+  Serial.print(IvtsPower);
   Serial.println(" [W]");
   Serial.print("Battery state: ");
   Serial.println(Battery_state);
@@ -35,18 +29,16 @@ void Status_Print() {
   Serial.print(Battery_SOC_percent);
   Serial.println(" [%]");
   Serial.print("Battery Voltage: ");
-  Serial.print(Battery_Voltage);
+  Serial.print(AMSBatteryVoltage);
   Serial.println(" [mA]");
   Serial.print("Charger flag: ");
   Serial.println(Charger_flags);
   
-  Serial.print("Motor torqe: ");
-  Serial.print(Motor_Torqe);
+  Serial.print("Motor Torque: ");
+  Serial.print(SevconActualTorque);
   Serial.println(" [%]");
-  Serial.print("Motor on flag: ");
-  Serial.println(Motor_On);
   Serial.print("Motor voltage: ");
-  Serial.print(Motor_Voltage);
+  Serial.print(SevconCapVoltage);
   Serial.println(" [V]");
   Serial.print("Voltage implausibility: ");
   Serial.println(voltage_implausibility);
@@ -66,25 +58,103 @@ void Print_CanMsg(const CAN_message_t &msg) {
     Serial.print(msg.buf[i], HEX); Serial.print(" ");
   } Serial.println();
 }
-void PedalControllerMB(const CAN_message_t &inMsg) {
-  PedalBeat  = true;
-  Brake = inMsg.buf[2];
 
-  if (inMsg.buf[0] == 0x20) {
-    PedalControllerError = false;
-    TPS_Implausibility = true;
-    Serial.println("Implausibility");
-    Throttle = 0;
+void CAN1_Unpack(const CAN_message_t &inMsg) {
+  switch(inMsg.id){
+    case PEDAL_CONTROLLER_ID:
+      PedalBeat  = true;
+      PedalBrake = inMsg.buf[2];
+
+      if (inMsg.buf[0] == 0x20) {
+        PedalControllerError = false;
+        TPS_Implausibility = true;
+        Serial.println("Implausibility");
+        PedalThrottle = 0;
+      }
+      else if (inMsg.buf[0] == 0x30){
+        PedalControllerError = true;
+        TPS_Implausibility = false;
+        Serial.println("PedalError");
+      }
+      else{
+        PedalControllerError = false;
+        TPS_Implausibility = false;
+        PedalThrottle = inMsg.buf[1];
+      }
+      break;
+    case IVTS_CURRENT_ID:
+      IVTSBeat = true;
+      IvtsCurrent = IVTS_SCALE_CURRENT*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
+      NominalCurrent = CalcNominal();
+      break;
+    case IVTS_VOLTAGE_ID:
+      IVTSBeat = true;
+      IvtsVoltage = IVTS_SCALE_VOLTAGE*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
+      break;
+    case IVTS_TEMP_ID:
+      IVTSBeat = true;
+      IvtsTemperature = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
+      IvtsTemperature = IvtsTemperature/10;
+      break;
+    case IVTS_POWER_ID:
+      IVTSBeat = true;
+      IvtsPower = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
+      break;
+    case AMS_ERROR_ID:
+      AMSBeat    = true;
+      if (inMsg.buf[2] !=0  ||  inMsg.buf[1] !=0) AMSError =true;
+      else AMSError = false;
+      // Check if we need Minimum cell boltage Battery SOC and etc
+      break;
+    case AMS_PRECHARGE_DONE_ID:
+      AMSBeat    = true;
+      AMSBatteryVoltage = (inMsg.buf[0] << 24) + (inMsg.buf[1] << 16) + (inMsg.buf[2] << 8) + inMsg.buf[3];
+      // Check if we need Battery voltage TODO add Air+ status
+      break;
+    case AMS_CHARGING_ID:
+      AMSBeat    = true;
+      // TODO check how this masseges are sent from AMS
+      break;
+    case LOGGER_START_ID: 
+      GPSVelocity = (inMsg.buf[3] << 24) + (inMsg.buf[2] << 16) + (inMsg.buf[1] << 8) + inMsg.buf[0];
+      LoggerTemp1 = (inMsg.buf[7] << 24) + (inMsg.buf[6] << 16) + (inMsg.buf[5] << 8) + inMsg.buf[4];
+      break;
+    case LOGGER_END_ID:
+      LoggerTemp2 = (inMsg.buf[3] << 24) + (inMsg.buf[2] << 16) + (inMsg.buf[1] << 8) + inMsg.buf[0];
+      break;
+    case DCDC_ON_ID:
+      if ((inMsg.buf[0] & 0x01) ==1) DcdcOn = true;
+      else  DcdcOn = false;
+      DcdcLowCurrent = (inMsg.buf[1] << 24) + (inMsg.buf[2] << 16) + (inMsg.buf[3] << 8) + inMsg.buf[4];
+      break;
+    case DCDC_Meas_ID:     
+      DcdcLowVoltage = (inMsg.buf[4] << 24) + (inMsg.buf[5] << 16) + (inMsg.buf[6] << 8) + inMsg.buf[7]; // TODO check if low voltage or high
+      break;
   }
-  else if (inMsg.buf[0] == 0x30){
-    PedalControllerError = true;
-    TPS_Implausibility = false;
-    Serial.println("PedalError");
-  }
-  else{
-    PedalControllerError = false;
-    TPS_Implausibility = false;
-    Throttle = inMsg.buf[1];
+
+};
+
+void CAN2_Unpack(const CAN_message_t &inMsg) {
+  SevconBeat = true; //  All Can2 Masseges comes from SEVCON
+  switch(inMsg.id){
+    case SEVCON_THROTTLE_ID:
+      SevconThrottle = (inMsg.buf[0] << 8) + inMsg.buf[1];  // 0.1%
+      SevconActualTorque = (inMsg.buf[2] << 8) + inMsg.buf[3];  // 0.1%
+      break;
+    case SEVCON_TORQUE_ID:
+      SevconDesiredTorque = (inMsg.buf[2] << 8) + inMsg.buf[3];  // 0.1% 
+      SevconDesiredTorqueNM = SEVCON_TORQUE_PRE_TO_NM*SevconDesiredTorque;
+      SevconActualTorqueNM = (inMsg.buf[4] << 8) + inMsg.buf[5];  // 0.0625[NM]
+      SevconTemperature = (inMsg.buf[6] << 8) + inMsg.buf[7];  // 1[C]  
+      break;
+    case SEVCON_CAP_VOLTAGE_ID:
+      SevconCapVoltage = SEVCON_SCALE_VOLTAGE*((inMsg.buf[0] << 8) + inMsg.buf[1]);  // 0.0625[V]
+      SevconHeatSink   = inMsg.buf[2];  // 0.0625 1[C]
+      break;
+    case SEVCON_VELOCITY_ID:
+      SevconVelocity = (inMsg.buf[0] << 24) + (inMsg.buf[1] << 16) + (inMsg.buf[2] << 8) + inMsg.buf[3];  // 1[RPM]
+      SevconSpeed = (inMsg.buf[4] << 8) + inMsg.buf[5];  // 0.0625[kph]
+      break;
   }
 }
 
@@ -110,90 +180,45 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
   PedalBeat  = false;
 }
 
-void CurrentMeasMB(const CAN_message_t &inMsg) {
-  IVTSBeat = true;
-  Current_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-  nominal_current = CalcNonimal();
-}
-void VoltageMeasure1MB(const CAN_message_t &inMsg) {
-  IVTSBeat = true;
-  Voltage_meas1 = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-}
-void VoltageMeasure2MB(const CAN_message_t &inMsg) {
-  IVTSBeat = true;
-  Voltage_meas2 = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-}
-void VoltageMeasure3MB(const CAN_message_t &inMsg) {
-  IVTSBeat = true;
-  Voltage_meas3 = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-}
-void TemperatureMeasureMB(const CAN_message_t &inMsg) {
-  IVTSBeat = true;
-  Temperature_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-  Temperature_meas = Temperature_meas/10;
-}
-void PowerMeasure(const CAN_message_t &inMsg) {
-  IVTSBeat = true;
-  Power_meas = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-}
-void BatteryStateMB(const CAN_message_t &inMsg) {
-  Battery_state = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-}
-void BatterySOCPercentMB(const CAN_message_t &inMsg) {
-  Battery_SOC_percent = inMsg.buf[1];
-}
-void BatteryVoltageMB(const CAN_message_t &inMsg) {
-  Battery_Voltage = (inMsg.buf[1] << 24) + (inMsg.buf[2] << 16) + (inMsg.buf[3] << 8) + inMsg.buf[4];
-  
-}
-void ChargerFlagsMB(const CAN_message_t &inMsg) {
-  Charger_flags = inMsg.buf[4];
-}
-void MotorControllerMB(const CAN_message_t &inMsg) {
-  SevconBeat = true;
-  Motor_Torqe = inMsg.buf[0];
-  Motor_On = inMsg.buf[1];
-  Motor_Voltage = (inMsg.buf[2] << 8) + inMsg.buf[3];
-}
 void Interrupt_Routine(){
   Status_Print();
 }
 
 
-void Send_Tourqe() {
+void Send_Torque() {
   if (FwRevCouter != TorqueDelay){
     FwRevCouter+=1;
     return;
   }
   FwRevCouter=0;
-  if(abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance)  
+  if(abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance)  
   {
-    torqe_msg.buf[0] = 0;
+    Torque_msg.buf[0] = 0;
     voltage_implausibility = 1;  
   }
   else
   {
-    torqe_msg.buf[0] = Throttle;
+    Torque_msg.buf[0] = TPS_2_SEVCON_SCALE*PedalThrottle; // Sevcon scale is 0.1% Pedal Controller scale is 1%
     if ((state == LIMP_STATE)||(state == REV_STATE)){
-      torqe_msg.buf[0] = Throttle/LIMP_DIVISION;
+      Torque_msg.buf[0] = TPS_2_SEVCON_SCALE*PedalThrottle/LIMP_DIVISION; // Sevcon scale is 0.1% Pedal Controller scale is 1%, Limp division avoids high power consumption
     }
     voltage_implausibility = 0;
   }
   if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE){
-    torqe_msg.buf[0] = 0;
+    Torque_msg.buf[0] = 0;
   }
-  torqe_msg.id = 0x81;
-  torqe_msg.len = 1;
-  torqe_msg.flags.extended = 0;
-  torqe_msg.flags.remote   = 0;
-  torqe_msg.flags.overrun  = 0;
-  torqe_msg.flags.reserved = 0;
+  Torque_msg.id = 0x111;
+  Torque_msg.len = 1;
+  Torque_msg.flags.extended = 0;
+  Torque_msg.flags.remote   = 0;
+  Torque_msg.flags.overrun  = 0;
+  Torque_msg.flags.reserved = 0;
   
-  Can1.write(torqe_msg);    //CANBus write command
+  Can2.write(Torque_msg);    //CANBus write command
 }
 
-int CalcNonimal(){
-  current_list[index_current] = Current_meas;
+int CalcNominal(){
+  current_list[index_current] = IvtsCurrent;
   index_current = (index_current + 1) % NOMIMAL_NUM; // The newest measure, switchs the last measure each time
   int sum = 0;
   for (int i=0; i<NOMIMAL_NUM; i++){
@@ -210,10 +235,7 @@ int LVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if (HeartBeatError){
-    state = ERROR_STATE;
-  }
-  if(abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance) {
+  if(abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   return state;
@@ -226,7 +248,7 @@ int HVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if (abs(Motor_Voltage - (Voltage_meas1/1000)) > VoltageTollerance) {
+  if (abs(SevconCapVoltage - (IvtsVoltage/1000)) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   if (!digitalRead(shutdownFB_pin)){
@@ -235,14 +257,14 @@ int HVError(){
   if (HeartBeatError){
     state = ERROR_STATE;
   }
-  if (Power_meas> MaxPower){
+  if (IvtsPower> MaxPower){
     state = ERROR_STATE;
   }
   return state;
 }
 
 int CheckHV(){
-  if ((Voltage_meas1 > TS_VOLTAGE_ON) ||  (Motor_Voltage > TS_VOLTAGE_ON)){
+  if ((IvtsVoltage > TS_VOLTAGE_ON) ||  (SevconCapVoltage > TS_VOLTAGE_ON)){  // If any of the IVTS voltage measurment or the Sevcon Capacitor voltage higher the 60v
     return HV_STATE;
   } else {
     return LV_STATE;
@@ -263,7 +285,7 @@ int CheckCooling(int cool){
   } else{   //CoolButtonCounter != CoolButtonDelay
     CoolButtonCounter +=1;
   }
-  if (Temperature_meas > CoolingReqTemp){
+  if (IvtsTemperature > CoolingReqTemp){
     cool = CoolingTempHigh;
   }
   return cool;
@@ -288,9 +310,9 @@ void EnableCooling(int cool){
   }
 }
 int CheckBrakeNThrottle(){
-  if ((hard_brake)&&(Throttle>(BT_MAX_THROTTLE)||(desired_motor_torque>BT_MAX_TOQUE))){ // TODO hard break change to check Brake > #define MIN_HARD_BREAK
+  if ((PedalBrake > HARD_BRAKE_VALUE)&&(PedalThrottle>(BT_MAX_THROTTLE)||(desired_motor_torque>BT_MAX_TOQUE))){
     bt_counter +=1;
-    if  (bt_counter >=BT_MAX_COUNT){
+    if  (bt_counter >= BT_MAX_COUNT ){
       if (state == REV_STATE){
           return BT_REV_STATE;
       } else { // state == FW or LIMP
@@ -303,7 +325,7 @@ int CheckBrakeNThrottle(){
   return state;
 }
 int CheckNoThrottle(){
-if ((desired_motor_torque<= MIN_MOTOR_TORQUE)&&(Throttle<=MIN_TPS_THROTTLE)){
+if ((desired_motor_torque<= MIN_MOTOR_TORQUE)&&(PedalThrottle<=MIN_TPS_THROTTLE)){
   if (state==BT_REV_STATE){
     return REV_STATE;
   }
@@ -316,7 +338,7 @@ return state;
 }
 
 bool AllOk(){
-  if ((AMSError)||(PedalControllerError)||(Voltage_meas1>=TS_VOLTAGE_ON)||(voltage_implausibility)){
+  if ((AMSError)||(PedalControllerError)||(IvtsVoltage>=TS_VOLTAGE_ON)||(voltage_implausibility)){
     return false;
   }
   //else
@@ -324,7 +346,7 @@ bool AllOk(){
 }
 
 void DcDcCheck(){
-  if ( (low_voltage < MAX_LOW_VOLTAGE) && (low_current < MAX_LOW_CURRENT) ){ //All good
+  if ( (DcdcLowVoltage < MAX_LOW_VOLTAGE) && (DcdcLowCurrent < MAX_LOW_CURRENT) ){ //All good
     //Send can message to DCDC Turn On
   }
   else{
@@ -333,8 +355,8 @@ void DcDcCheck(){
 }
 
 int CheckR2D(){
-  if (R2DCounter == R2DDelay){ // for kfir cohen on boot R2DCounter == R2DDelay
-    if (digitalRead(R2Dbutton_pin) && Brake > MinBrakeR2D && !digitalRead(ForwardSwitch_pin) && !digitalRead(ReverseSwitch_pin)){
+  if (R2DCounter == R2DDelay){
+    if (digitalRead(R2Dbutton_pin) && PedalBrake > MinBrakeR2D && !digitalRead(ForwardSwitch_pin) && !digitalRead(ReverseSwitch_pin)){
       if (air_plus && !charging){
         ready_to_drive_pressed = true;
         R2DCounter = 0;
@@ -351,7 +373,7 @@ int CheckR2D(){
 }
 
 int LeaveR2D(){
-  if (digitalRead(R2Dbutton_pin) && Brake > MinBrakeR2D && velocity < MIN_SPEED_TO_REV ){
+  if (digitalRead(R2Dbutton_pin) && PedalBrake > MinBrakeR2D && velocity < MIN_SPEED_TO_REV ){
     R2DCounter = R2DDelay - R2D_BUTTON_DELAY;
     state = HV_STATE;
   } else if (digitalRead(ForwardSwitch_pin)){
@@ -363,8 +385,7 @@ int LeaveR2D(){
 }
 
 int CheckLimp(){
-  state = FW_STATE;
-  if (Battery_Percent < MIN_BATTERY || nominal_current > MAX_NOMIMAL_CURRENT || Power_meas > MaxPower || Temperature_meas > MAX_TEMPERATURE){
+  if (Battery_Percent < MIN_BATTERY || NominalCurrent > MAX_NOMIMAL_CURRENT || IvtsPower > MaxPower || IvtsTemperature > MAX_TEMPERATURE){
     state = LIMP_STATE;
   }
   return state;
@@ -379,4 +400,11 @@ bool WaitRelay(){
     ready = true;
   }
   return ready;
+}
+
+void PatchForTorqueTest(){
+  if  (SevconCapVoltage > 300){
+    PedalThrottle = 20;
+    Send_Torque();
+  }
 }

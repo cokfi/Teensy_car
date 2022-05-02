@@ -1,9 +1,29 @@
 #ifndef ecu_defines_h
 #define ecu_defines_h
 
-//mailboxes
-#define NUM_TX_MAILBOXES 2
-#define NUM_RX_MAILBOXES 12
+//Canbus ID
+// Can 1
+#define PEDAL_CONTROLLER_ID     0x40
+
+#define IVTS_CURRENT_ID         0x521
+#define IVTS_VOLTAGE_ID         0x522
+#define IVTS_TEMP_ID            0x525
+#define IVTS_POWER_ID           0x526
+
+#define AMS_ERROR_ID            0x124
+#define AMS_PRECHARGE_DONE_ID   0x125
+#define AMS_CHARGING_ID         0x126
+
+#define LOGGER_START_ID         0x300
+#define LOGGER_END_ID           0x301
+
+#define DCDC_ON_ID              0x18D
+#define DCDC_Meas_ID            0x28D
+// Can 2
+#define SEVCON_THROTTLE_ID       0x102
+#define SEVCON_TORQUE_ID         0x103
+#define SEVCON_CAP_VOLTAGE_ID    0x104
+#define SEVCON_VELOCITY_ID       0x105
 //Output
 #define AvoidDischarge_pin 17
 #define Pump1_pin 6
@@ -19,9 +39,17 @@
 //Input
 #define ForwardSwitch_pin 12
 #define ReverseSwitch_pin 24
-#define R2Dbutton_pin 29
-#define ForceCooling_pin 30
-#define shutdownFB_pin 15
+#define R2Dbutton_pin     29
+#define ForceCooling_pin  30
+#define shutdownFB_pin    15
+// Scaling
+#define SEVCON_SCALE_VOLTAGE      0.0625
+#define IVTS_SCALE_VOLTAGE        10/9894
+#define TPS_2_SEVCON_SCALE        10   
+#define IVTS_SCALE_CURRENT        1/401
+#define B_AND_T_NM_RPM_TO_50KW    0.105/20  // [RPM]*[NM]*[SCALE] = 50[KW]
+#define SEVCON_TORQUE_PRE_TO_NM   1         // TODO calculate the correct SCALE
+
 
 //states
 #define LV_STATE 1 // low voltage state
@@ -64,4 +92,5 @@
 #define BT_MAX_COUNT 500 //ms
 #define MIN_TPS_THROTTLE 5 //TEMP
 #define MIN_MOTOR_TORQUE 5 //TEMP
+#define HARD_BRAKE_VALUE 50 // TEMP
 #endif
