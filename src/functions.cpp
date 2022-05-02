@@ -309,8 +309,11 @@ void EnableCooling(int cool){
     digitalWrite(Pump2_pin,LOW);
   }
 }
+int CalcKWTorque(){
+  return B_AND_T_NM_RPM_TO_50KW*SevconDesiredTorqueNM*SevconVelocity;
+}
 int CheckBrakeNThrottle(){
-  if ((PedalBrake > HARD_BRAKE_VALUE)&&(PedalThrottle>(BT_MAX_THROTTLE)||(desired_motor_torque>BT_MAX_TOQUE))){
+  if ((PedalBrake > HARD_BRAKE_VALUE)&&(PedalThrottle>(BT_MAX_THROTTLE)||(CalcKWTorque()>BT_MAX_TOQUE))){
     bt_counter +=1;
     if  (bt_counter >= BT_MAX_COUNT ){
       if (state == REV_STATE){
@@ -325,7 +328,7 @@ int CheckBrakeNThrottle(){
   return state;
 }
 int CheckNoThrottle(){
-if ((desired_motor_torque<= MIN_MOTOR_TORQUE)&&(PedalThrottle<=MIN_TPS_THROTTLE)){
+if ((CalcKWTorque()<= MIN_MOTOR_TORQUE)&&(PedalThrottle<=MIN_TPS_THROTTLE)){
   if (state==BT_REV_STATE){
     return REV_STATE;
   }
