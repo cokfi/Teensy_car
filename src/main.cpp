@@ -186,7 +186,7 @@ void loop() {
           }
           // change state
           state = CheckLimp(); // need to be first check on state changing
-          state = CheckBrakeNThrottle(); // TODO create function
+          state = CheckBrakeNThrottle(); 
           if (!digitalRead(ForwardSwitch_pin)){ // if forward ==0
               state = R2D_STATE;
           }
