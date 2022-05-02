@@ -49,6 +49,6 @@ extern uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 //////////////// Sevcon //////////////////
 extern uint8_t SevconHeatSink;
 extern uint16_t SevconTemperature, SevconCapVoltage, SevconSpeed;
-extern int16_t SevconActualTorqueNM, SevconActualTorque,SevconDesiredTorque,SevconThrottle;
+extern int16_t SevconActualTorqueNM, SevconActualTorque,SevconDesiredTorque,SevconThrottle, SevconDesiredTorqueNM;
 extern int32_t SevconVelocity;
 #endif

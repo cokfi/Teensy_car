@@ -84,12 +84,12 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
       break;
     case IVTS_CURRENT_ID:
       IVTSBeat = true;
-      IvtsCurrent = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
+      IvtsCurrent = IVTS_SCALE_CURRENT*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
       NominalCurrent = CalcNominal();
       break;
     case IVTS_VOLTAGE_ID:
       IVTSBeat = true;
-      IvtsVoltage = (IVTS_SCALE_VOLTAGE)*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
+      IvtsVoltage = IVTS_SCALE_VOLTAGE*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
       break;
     case IVTS_TEMP_ID:
       IVTSBeat = true;
@@ -143,6 +143,7 @@ void CAN2_Unpack(const CAN_message_t &inMsg) {
       break;
     case SEVCON_TORQUE_ID:
       SevconDesiredTorque = (inMsg.buf[2] << 8) + inMsg.buf[3];  // 0.1% 
+      SevconDesiredTorqueNM = SEVCON_TORQUE_PRE_TO_NM*SevconDesiredTorque;
       SevconActualTorqueNM = (inMsg.buf[4] << 8) + inMsg.buf[5];  // 0.0625[NM]
       SevconTemperature = (inMsg.buf[6] << 8) + inMsg.buf[7];  // 1[C]  
       break;

@@ -22,7 +22,7 @@ uint8_t Charger_flags, voltage_implausibility;
 //////////// Sevcon/////////////
 uint8_t SevconHeatSink;
 uint16_t  SevconTemperature, SevconCapVoltage, SevconSpeed;
-int16_t SevconActualTorqueNM, SevconActualTorque,SevconDesiredTorque,SevconThrottle;
+int16_t SevconActualTorqueNM, SevconActualTorque,SevconDesiredTorque,SevconThrottle, SevconDesiredTorqueNM;
 int32_t SevconVelocity;
 /////////////////////////////
 uint16_t R2DCounter = R2DDelay, velocity = 0, NominalCurrent = 0;
