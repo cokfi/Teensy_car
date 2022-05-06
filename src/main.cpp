@@ -15,7 +15,7 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 CAN_message_t Torque_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
 int state = LV_STATE;
-uint8_t HeartBeatCounter = 0, FwRevCouter = 0, CoolButtonCounter = CoolButtonDelay, relay_counter = 0;
+uint8_t HeartBeatCounter = 0, FwRevCouter = 1, CoolButtonCounter = CoolButtonDelay, relay_counter = 0;
 uint8_t DcdcLowCurrent =0, DcdcLowVoltage=0;
 uint8_t PedalThrottle = 0, PedalBrake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 uint8_t Charger_flags, voltage_implausibility;

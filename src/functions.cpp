@@ -23,6 +23,7 @@ void Status_Print() {
   Serial.print("Power measure: ");
   Serial.print(IvtsPower);
   Serial.println(" [W]");
+  /*
   Serial.print("Battery state: ");
   Serial.println(Battery_state);
   Serial.print("Battery SOC percent: ");
@@ -33,7 +34,7 @@ void Status_Print() {
   Serial.println(" [mA]");
   Serial.print("Charger flag: ");
   Serial.println(Charger_flags);
-  
+  */
   Serial.print("Motor Torque: ");
   Serial.print(SevconActualTorque);
   Serial.println(" [%]");
@@ -179,28 +180,33 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
   SevconBeat = false; 
   PedalBeat  = false;
 }
-
+int SerialCount = 0;
 void Interrupt_Routine(){
-  Status_Print();
+  if (SerialCount%1500 == 0)
+    Status_Print();
+  SerialCount +=1;
 }
 
 
 void Send_Torque() {
-  if (FwRevCouter != TorqueDelay){
+  if (FwRevCouter < TorqueDelay){
     FwRevCouter+=1;
     return;
   }
-  FwRevCouter=0;
+  FwRevCouter=1;
   if(abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance)  
   {
     Torque_msg.buf[0] = 0;
+    Torque_msg.buf[1] = 0;
     voltage_implausibility = 1;  
   }
   else
   {
-    Torque_msg.buf[0] = TPS_2_SEVCON_SCALE*PedalThrottle; // Sevcon scale is 0.1% Pedal Controller scale is 1%
+    Torque_msg.buf[1] = (TPS_2_SEVCON_SCALE*PedalThrottle)%256; // Sevcon scale is 0.1% Pedal Controller scale is 1%
+    Torque_msg.buf[0] = (TPS_2_SEVCON_SCALE*PedalThrottle)/256; // Sevcon scale is 0.1% Pedal Controller scale is 1%
     if ((state == LIMP_STATE)||(state == REV_STATE)){
-      Torque_msg.buf[0] = TPS_2_SEVCON_SCALE*PedalThrottle/LIMP_DIVISION; // Sevcon scale is 0.1% Pedal Controller scale is 1%, Limp division avoids high power consumption
+      Torque_msg.buf[1] = (TPS_2_SEVCON_SCALE*PedalThrottle/LIMP_DIVISION)%256; // Sevcon scale is 0.1% Pedal Controller scale is 1%, Limp division avoids high power consumption
+      Torque_msg.buf[0] = 0;
     }
     voltage_implausibility = 0;
   }
@@ -208,7 +214,7 @@ void Send_Torque() {
     Torque_msg.buf[0] = 0;
   }
   Torque_msg.id = 0x111;
-  Torque_msg.len = 1;
+  Torque_msg.len = 2;
   Torque_msg.flags.extended = 0;
   Torque_msg.flags.remote   = 0;
   Torque_msg.flags.overrun  = 0;
@@ -406,8 +412,8 @@ bool WaitRelay(){
 }
 
 void PatchForTorqueTest(){
-  if  (SevconCapVoltage > 300){
+  //if  (SevconCapVoltage > 300){
     PedalThrottle = 20;
     Send_Torque();
-  }
+  //}
 }
