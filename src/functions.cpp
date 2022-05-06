@@ -66,13 +66,13 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
       PedalBeat  = true;
       PedalBrake = inMsg.buf[2];
 
-      if (inMsg.buf[0] == 0x20) {
+      if (inMsg.buf[0] == 0x02) {
         PedalControllerError = false;
         TPS_Implausibility = true;
         Serial.println("Implausibility");
         PedalThrottle = 0;
       }
-      else if (inMsg.buf[0] == 0x30){
+      else if (inMsg.buf[0] == 0x03){
         PedalControllerError = true;
         TPS_Implausibility = false;
         Serial.println("PedalError");
@@ -95,7 +95,7 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
     case IVTS_TEMP_ID: 
       IVTSBeat = true;
       IvtsTemperature = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
-      IvtsTemperature = IvtsTemperature/10;
+      IvtsTemperature = int (IvtsTemperature/10); // not sure about this line
       break;
     case IVTS_POWER_ID:
       IVTSBeat = true;
@@ -415,4 +415,10 @@ void PatchForTorqueTest(){
   //if  (SevconCapVoltage > 300){
     Send_Torque();
   //}
+}
+
+void SendToLogger(){
+  
+
+
 }

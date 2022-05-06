@@ -24,6 +24,7 @@ int LeaveR2D();
 int CheckLimp();
 int CalcNominal();
 bool WaitRelay();
+void SendToLogger();
 
 void EnableCooling(int cool);
 void DcDcCheck();

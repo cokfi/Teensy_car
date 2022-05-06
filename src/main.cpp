@@ -99,6 +99,7 @@ void loop() {
   if (MilliSec){
     MilliSec = false;
     PatchForTorqueTest();
+    SendToLogger();
     if (false){
     HeartBeatAISP();
     switch (state)
