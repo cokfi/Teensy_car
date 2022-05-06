@@ -36,7 +36,7 @@ extern FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 extern FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2;
 //extern myTimer1;                      // Create an IntervalTimer1 object ;
 extern CAN_message_t msg;
-extern CAN_message_t Torque_msg;
+extern CAN_message_t Torque_msg, LoggerMsg1, LoggerMsg2, LoggerMsg3;
 extern int8_t state, current_list[NOMIMAL_NUM], index_current,bt_counter;
 
 extern uint8_t HeartBeatCounter, FwRevCouter, CoolButtonCounter, R2DButtonCounter, relay_counter;

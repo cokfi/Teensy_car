@@ -12,7 +12,7 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 
 //static CAN_message_t msg;
-CAN_message_t Torque_msg;
+CAN_message_t Torque_msg, LoggerMsg1, LoggerMsg2, LoggerMsg3;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
 int8_t state = LV_STATE;
 uint8_t HeartBeatCounter = 0, FwRevCouter = 1, CoolButtonCounter = CoolButtonDelay, relay_counter = 0;

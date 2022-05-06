@@ -39,7 +39,7 @@ void Status_Print() {
   Serial.print(SevconActualTorque);
   Serial.println(" [%]");
   Serial.print("Motor voltage: ");
-  Serial.print(SevconCapVoltage);
+  Serial.print(SEVCON_SCALE_VOLTAGE*SevconCapVoltage);
   Serial.println(" [V]");
   Serial.print("Voltage implausibility: ");
   Serial.println(voltage_implausibility);
@@ -149,7 +149,7 @@ void CAN2_Unpack(const CAN_message_t &inMsg) {
       SevconTemperature = (inMsg.buf[6] << 8) + inMsg.buf[7];  // 1[C]  
       break;
     case SEVCON_CAP_VOLTAGE_ID:
-      SevconCapVoltage = SEVCON_SCALE_VOLTAGE*((inMsg.buf[0] << 8) + inMsg.buf[1]);  // 0.0625[V]
+      SevconCapVoltage = ((inMsg.buf[0] << 8) + inMsg.buf[1]);  // 0.0625[V]
       SevconHeatSink   = inMsg.buf[2];  // 0.0625 1[C]
       break;
     case SEVCON_VELOCITY_ID:
@@ -194,7 +194,7 @@ void Send_Torque() {
     return;
   }
   FwRevCouter=1;
-  if(abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance)  
+  if(abs(SevconCapVoltage*SEVCON_SCALE_VOLTAGE - IvtsVoltage) > VoltageTollerance)  
   {
     Torque_msg.buf[0] = 0;
     Torque_msg.buf[1] = 0;
@@ -241,7 +241,7 @@ int LVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if(abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
+  if(abs(SEVCON_SCALE_VOLTAGE*SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   return state;
@@ -254,7 +254,7 @@ int HVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if (abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
+  if (abs(SEVCON_SCALE_VOLTAGE*SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   if (!digitalRead(shutdownFB_pin)){
@@ -270,7 +270,7 @@ int HVError(){
 }
 
 int CheckHV(){
-  if ((IvtsVoltage > TS_VOLTAGE_ON) ||  (SevconCapVoltage > TS_VOLTAGE_ON)){  // If any of the IVTS voltage measurment or the Sevcon Capacitor voltage higher the 60v
+  if ((IvtsVoltage > TS_VOLTAGE_ON) ||  (SEVCON_SCALE_VOLTAGE*SevconCapVoltage > TS_VOLTAGE_ON)){  // If any of the IVTS voltage measurment or the Sevcon Capacitor voltage higher the 60v
     return HV_STATE;
   } else {
     return LV_STATE;
@@ -412,13 +412,72 @@ bool WaitRelay(){
 }
 
 void PatchForTorqueTest(){
-  //if  (SevconCapVoltage > 300){
-    Send_Torque();
-  //}
+   Send_Torque();
 }
-
+int8_t LoggerCouter = 1;
 void SendToLogger(){
+   if (LoggerCouter < LOGGER_DELAY){
+    LoggerCouter+=1;
+    return;
+  }
+  LoggerCouter=1;
+  //LoggerMsg1 
+  // Torqe
+  LoggerMsg1.buf[1] = (SevconActualTorque%256)/10;       //LSB
+  LoggerMsg1.buf[0] = (SevconActualTorque/256);  //MSB
+  //Motor Temperature
+  LoggerMsg1.buf[3] = SevconTemperature%256;    //LSB
+  LoggerMsg1.buf[2] = (SevconTemperature/256);  //MSB
+  // Sevcon Voltage
+  LoggerMsg1.buf[5] = SevconCapVoltage%256;    //LSB
+  LoggerMsg1.buf[4] = (SevconCapVoltage/256);  //MSB
+  // Sevcon HeatSink
+  LoggerMsg1.buf[6] = SevconHeatSink;      // Check if LSB or MSB
   
-
-
+  LoggerMsg1.id = 0x50;
+  LoggerMsg1.len = 8;
+  LoggerMsg1.flags.extended = 0;
+  LoggerMsg1.flags.remote   = 0;
+  LoggerMsg1.flags.overrun  = 0;
+  LoggerMsg1.flags.reserved = 0;
+    //LoggerMsg1 
+  // Torqe
+  LoggerMsg1.buf[1] = (SevconActualTorque%256)/10;       //LSB
+  LoggerMsg1.buf[0] = (SevconActualTorque/256);  //MSB
+  //Motor Temperature
+  LoggerMsg1.buf[3] = SevconTemperature%256;    //LSB
+  LoggerMsg1.buf[2] = (SevconTemperature/256);  //MSB
+  // Sevcon Voltage
+  LoggerMsg1.buf[5] = SevconCapVoltage%256;    //LSB
+  LoggerMsg1.buf[4] = (SevconCapVoltage/256);  //MSB
+  // Sevcon HeatSink
+  LoggerMsg1.buf[6] = SevconHeatSink;      // Check if LSB or MSB
+  
+  LoggerMsg1.id = 0x50;
+  LoggerMsg1.len = 8;
+  LoggerMsg1.flags.extended = 0;
+  LoggerMsg1.flags.remote   = 0;
+  LoggerMsg1.flags.overrun  = 0;
+  LoggerMsg1.flags.reserved = 0;
+    //LoggerMsg2
+  // Velocity
+  LoggerMsg2.buf[0] = (SevconVelocity << 24 )%256;       //MSB
+  LoggerMsg2.buf[1] = (SevconVelocity << 16 )%256;          
+  LoggerMsg2.buf[2] = (SevconVelocity << 8 )%256;             
+  LoggerMsg2.buf[3] = (SevconVelocity%256);           //LSB
+  // Sevcon Voltage
+  LoggerMsg2.buf[5] = SevconSpeed%256;    //LSB
+  LoggerMsg2.buf[4] = (SevconSpeed/256);  //MSB
+  // TODO states
+  LoggerMsg2.buf[6] =0;    //LSB
+  LoggerMsg2.buf[7] =0;
+  LoggerMsg2.id = 0x51;
+  LoggerMsg2.len = 8;
+  LoggerMsg2.flags.extended = 0;
+  LoggerMsg2.flags.remote   = 0;
+  LoggerMsg2.flags.overrun  = 0;
+  LoggerMsg2.flags.reserved = 0;
+  
+  Can1.write(LoggerMsg1);    //CANBus write command 
+  Can1.write(LoggerMsg2);    //CANBus write command 
 }
