@@ -36,16 +36,17 @@ extern FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2;
 //extern myTimer1;                      // Create an IntervalTimer1 object ;
 extern CAN_message_t msg;
 extern CAN_message_t Torque_msg;
-extern int state, current_list[NOMIMAL_NUM], index_current,bt_counter,desired_motor_torque;
+extern int8_t state, current_list[NOMIMAL_NUM], index_current,bt_counter;
 
 extern uint8_t HeartBeatCounter, FwRevCouter, CoolButtonCounter, R2DButtonCounter, relay_counter;
 extern uint8_t DcdcLowCurrent, DcdcLowVoltage;
 extern uint8_t PedalThrottle , PedalBrake , Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
 extern uint8_t Charger_flags, voltage_implausibility;
-extern uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, AMSBatteryVoltage;
+extern int32_t IvtsPower, IvtsTemperature, AMSBatteryVoltage;
+extern int32_t IvtsVoltage, IvtsCurrent;
 extern bool AMSError, PedalControllerError,IVTSBeat, SevconBeat, AMSBeat, PedalBeat, HeartBeatError, TPS_Implausibility, MilliSec, charging, air_plus, ready_to_drive_pressed, DcdcOn;
 extern uint16_t R2DCounter, velocity, NominalCurrent;
-extern uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
+extern int32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 //////////////// Sevcon //////////////////
 extern uint8_t SevconHeatSink;
 extern uint16_t SevconTemperature, SevconCapVoltage, SevconSpeed;

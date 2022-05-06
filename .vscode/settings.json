@@ -3,6 +3,8 @@
     "files.associations": {
         "*.tpp": "cpp",
         "*.tcc": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "cstdint": "cpp",
+        "random": "cpp"
     }
 }

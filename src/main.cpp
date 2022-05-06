@@ -14,7 +14,7 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 //static CAN_message_t msg;
 CAN_message_t Torque_msg;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
-int state = LV_STATE;
+int8_t state = LV_STATE;
 uint8_t HeartBeatCounter = 0, FwRevCouter = 1, CoolButtonCounter = CoolButtonDelay, relay_counter = 0;
 uint8_t DcdcLowCurrent =0, DcdcLowVoltage=0;
 uint8_t PedalThrottle = 0, PedalBrake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
@@ -27,12 +27,13 @@ int32_t SevconVelocity;
 /////////////////////////////
 uint16_t R2DCounter = R2DDelay, velocity = 0, NominalCurrent = 0;
 bool AMSError = false, PedalControllerError = false, IVTSBeat = false, SevconBeat = false, AMSBeat= false, PedalBeat = false, HeartBeatError = false, TPS_Implausibility = false, MilliSec = true;
-uint32_t IvtsPower, IvtsTemperature, IvtsCurrent, IvtsVoltage, AMSBatteryVoltage, MotorTorque, Motor_On, MotorVoltage;
-uint32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
+int32_t IvtsPower, IvtsTemperature, AMSBatteryVoltage, MotorTorque, Motor_On, MotorVoltage;
+int32_t IvtsVoltage, IvtsCurrent;
+int32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 CAN_message_t msg ;
 bool init_skip = false , air_plus = false, charging = false, ready_to_drive_pressed = false, DcdcOn = false; // first time entering LV state
-int cool = 0 , current_list[NOMIMAL_NUM], index_current = 0;
-int prev_cool =0, bt_counter=0,desired_motor_torque=0;
+int8_t cool = 0 , current_list[NOMIMAL_NUM], index_current = 0;
+int8_t prev_cool =0, bt_counter=0;
 bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
 bool enable_dcdc = true ; // 
 bool open_relay = false;
@@ -94,6 +95,7 @@ void setup(void)
 
 void loop() {
   Can1.events();
+  Can2.events();
   if (MilliSec){
     MilliSec = false;
     PatchForTorqueTest();

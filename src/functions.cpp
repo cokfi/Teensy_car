@@ -13,10 +13,10 @@ void Status_Print() {
   Serial.println(" [%]");
   Serial.print("current: ");
   Serial.print(IvtsCurrent);
-  Serial.println(" [mA]");
-  Serial.print("Voltage measure 1: ");
+  Serial.println(" [A]");
+  Serial.print("IvtsVoltage: ");
   Serial.print(IvtsVoltage);
-  Serial.println(" [mV]");
+  Serial.println(" [V]");
   Serial.print("Temperature measure: ");
   Serial.print(IvtsTemperature);
   Serial.println(" [C]");
@@ -48,7 +48,7 @@ void Status_Print() {
 
 
 void Print_CanMsg(const CAN_message_t &msg) {
-  Serial.print("MB "); Serial.print(msg.mb);
+  Serial.print("MB ");Can1.events();
   Serial.print("  OVERRUN: "); Serial.print(msg.flags.overrun);
   Serial.print("  LEN: "); Serial.print(msg.len);
   Serial.print(" EXT: "); Serial.print(msg.flags.extended);
@@ -85,14 +85,14 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
       break;
     case IVTS_CURRENT_ID:
       IVTSBeat = true;
-      IvtsCurrent = IVTS_SCALE_CURRENT*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
+      IvtsCurrent = int(IVTS_SCALE_CURRENT*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]));
       NominalCurrent = CalcNominal();
       break;
     case IVTS_VOLTAGE_ID:
       IVTSBeat = true;
-      IvtsVoltage = IVTS_SCALE_VOLTAGE*((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5]);
+      IvtsVoltage = int(((inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5])*IVTS_SCALE_VOLTAGE);
       break;
-    case IVTS_TEMP_ID:
+    case IVTS_TEMP_ID: 
       IVTSBeat = true;
       IvtsTemperature = (inMsg.buf[2] << 24) + (inMsg.buf[3] << 16) + (inMsg.buf[4] << 8) + inMsg.buf[5];
       IvtsTemperature = IvtsTemperature/10;
@@ -182,7 +182,7 @@ void HeartBeatAISP(){  // AISP - AMS, IVTS, Sevcon, Pedal Controller
 }
 int SerialCount = 0;
 void Interrupt_Routine(){
-  if (SerialCount%1500 == 0)
+  if (SerialCount%50 == 0)
     Status_Print();
   SerialCount +=1;
 }
@@ -254,7 +254,7 @@ int HVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if (abs(SevconCapVoltage - (IvtsVoltage/1000)) > VoltageTollerance) {
+  if (abs(SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
     state = ERROR_STATE;
   }
   if (!digitalRead(shutdownFB_pin)){
@@ -413,7 +413,6 @@ bool WaitRelay(){
 
 void PatchForTorqueTest(){
   //if  (SevconCapVoltage > 300){
-    PedalThrottle = 20;
     Send_Torque();
   //}
 }
