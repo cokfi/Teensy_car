@@ -1,7 +1,10 @@
+//hall and api
+
 #include <FlexCAN_T4.h>
 #include <Arduino.h>
 #include "ecu_functions.h"
 #include "ecu_defines.h"
+
 // -------------------------------------------------------------
 void Status_Print() {
   Serial.println("=====================system status=======================");
@@ -23,6 +26,17 @@ void Status_Print() {
   Serial.print("Power measure: ");
   Serial.print(IvtsPower);
   Serial.println(" [W]");
+  Serial.print("State:  ");
+  Serial.println(state);
+  Serial.print("StateUsage:  ");
+  for (int i;i<=8;i++){
+    Serial.print(stateUsage[i]);
+    Serial.print(" ");
+  }
+  Serial.println(stateUsage[9]);
+
+  
+
   /*
   Serial.print("Battery state: ");
   Serial.println(Battery_state);
@@ -41,8 +55,6 @@ void Status_Print() {
   Serial.print("Motor voltage: ");
   Serial.print(SEVCON_SCALE_VOLTAGE*SevconCapVoltage);
   Serial.println(" [V]");
-  Serial.print("Voltage implausibility: ");
-  Serial.println(voltage_implausibility);
   Serial.println("==========================END============================");
 }
 
@@ -110,6 +122,7 @@ void CAN1_Unpack(const CAN_message_t &inMsg) {
     case AMS_PRECHARGE_DONE_ID:
       AMSBeat    = true;
       AMSBatteryVoltage = (inMsg.buf[0] << 24) + (inMsg.buf[1] << 16) + (inMsg.buf[2] << 8) + inMsg.buf[3];
+      air_plus = inMsg.buf[5]&0x1;
       // Check if we need Battery voltage TODO add Air+ status
       break;
     case AMS_CHARGING_ID:
@@ -155,6 +168,7 @@ void CAN2_Unpack(const CAN_message_t &inMsg) {
     case SEVCON_VELOCITY_ID:
       SevconVelocity = (inMsg.buf[0] << 24) + (inMsg.buf[1] << 16) + (inMsg.buf[2] << 8) + inMsg.buf[3];  // 1[RPM]
       SevconSpeed = (inMsg.buf[4] << 8) + inMsg.buf[5];  // 0.0625[kph]
+      SevconReciveFWRV = inMsg.buf[7];
       break;
   }
 }
@@ -198,7 +212,6 @@ void Send_Torque() {
   {
     Torque_msg.buf[0] = 0;
     Torque_msg.buf[1] = 0;
-    voltage_implausibility = 1;  
   }
   else
   {
@@ -208,7 +221,6 @@ void Send_Torque() {
       Torque_msg.buf[1] = (TPS_2_SEVCON_SCALE*PedalThrottle/LIMP_DIVISION)%256; // Sevcon scale is 0.1% Pedal Controller scale is 1%, Limp division avoids high power consumption
       Torque_msg.buf[0] = 0;
     }
-    voltage_implausibility = 0;
   }
   if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE){
     Torque_msg.buf[0] = 0;
@@ -241,8 +253,20 @@ int LVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if(abs(SEVCON_SCALE_VOLTAGE*SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
-    state = ERROR_STATE;
+  if (ImpCouter < IMPLAUSIBILITY_COUNTER){
+    ImpCouter+=1;
+    return state;
+  }
+  if (abs(SEVCON_SCALE_VOLTAGE*SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
+    if (FirstTimeImpV){
+      ImpCouter=1;
+      FirstTimeImpV=false;
+    } else {
+      state = ERROR_STATE;
+      FirstTimeImpV=true;
+      ImpCouter=IMPLAUSIBILITY_COUNTER;
+    }
+
   }
   return state;
 }
@@ -254,9 +278,6 @@ int HVError(){
   if (PedalControllerError){
     state = ERROR_STATE;
   }
-  if (abs(SEVCON_SCALE_VOLTAGE*SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
-    state = ERROR_STATE;
-  }
   if (!digitalRead(shutdownFB_pin)){
     state = ERROR_STATE;
   }
@@ -265,6 +286,21 @@ int HVError(){
   }
   if (IvtsPower> MaxPower){
     state = ERROR_STATE;
+  }
+  if (ImpCouter < IMPLAUSIBILITY_COUNTER){
+    ImpCouter+=1;
+    return state;
+  }
+  if (abs(SEVCON_SCALE_VOLTAGE*SevconCapVoltage - IvtsVoltage) > VoltageTollerance) {
+    if (FirstTimeImpV){
+      ImpCouter=1;
+      FirstTimeImpV=false;
+    } else {
+      state = ERROR_STATE;
+      FirstTimeImpV=true;
+      ImpCouter=IMPLAUSIBILITY_COUNTER;
+    }
+
   }
   return state;
 }
@@ -347,10 +383,12 @@ return state;
 }
 
 bool AllOk(){
-  if ((AMSError)||(PedalControllerError)||(IvtsVoltage>=TS_VOLTAGE_ON)||(voltage_implausibility)){
+  if ((AMSError)||(PedalControllerError)||(IvtsVoltage>=TS_VOLTAGE_ON)||((SEVCON_SCALE_VOLTAGE*SevconCapVoltage )>= TS_VOLTAGE_ON)){
     return false;
   }
   //else
+  FirstTimeImpV=true;
+  ImpCouter=IMPLAUSIBILITY_COUNTER;
   return true;
 }
 
@@ -394,8 +432,10 @@ int LeaveR2D(){
 }
 
 int CheckLimp(){
-  if (Battery_Percent < MIN_BATTERY || NominalCurrent > MAX_NOMIMAL_CURRENT || IvtsPower > MaxPower || IvtsTemperature > MAX_TEMPERATURE){
+  if (AMSBatteryVoltage < MIN_BATTERY || NominalCurrent > MAX_NOMIMAL_CURRENT || IvtsPower > MaxPower || IvtsTemperature > MAX_TEMPERATURE){
     state = LIMP_STATE;
+  }else{
+    state = FW_STATE;
   }
   return state;
 }
@@ -461,23 +501,37 @@ void SendToLogger(){
   LoggerMsg1.flags.reserved = 0;
     //LoggerMsg2
   // Velocity
-  LoggerMsg2.buf[0] = (SevconVelocity << 24 )%256;       //MSB
-  LoggerMsg2.buf[1] = (SevconVelocity << 16 )%256;          
-  LoggerMsg2.buf[2] = (SevconVelocity << 8 )%256;             
+  LoggerMsg2.buf[0] = (SevconVelocity >> 24 )%256;       //MSB
+  LoggerMsg2.buf[1] = (SevconVelocity >> 16 )%256;          
+  LoggerMsg2.buf[2] = (SevconVelocity >> 8 )%256;             
   LoggerMsg2.buf[3] = (SevconVelocity%256);           //LSB
   // Sevcon Voltage
   LoggerMsg2.buf[5] = SevconSpeed%256;    //LSB
   LoggerMsg2.buf[4] = (SevconSpeed/256);  //MSB
-  // TODO states
-  LoggerMsg2.buf[6] =0;    //LSB
-  LoggerMsg2.buf[7] =0;
+  // TODO change the status - status
+  LoggerMsg2.buf[7] =SevconReciveFWRV;
+
+  // To AMS Flow 
+  LoggerMsg2.buf[6] = capacitor_high; // is capacitor charged AMS needs to get air+
+  if (state <R2D_STATE || state==ERROR_STATE){
+    LoggerMsg2.buf[6] &=  ~0x02; // the car not at driving states
+  }else{
+    LoggerMsg2.buf[6] |= 0x02; // the car at driving states
+  }
+  if (digitalRead(shutdownFB_pin)){
+    LoggerMsg2.buf[6] |=  0x04; // ShutDown close
+  }else{
+    LoggerMsg2.buf[6] &=  ~0x04; // ShutDown open
+  }
+
   LoggerMsg2.id = 0x51;
   LoggerMsg2.len = 8;
   LoggerMsg2.flags.extended = 0;
   LoggerMsg2.flags.remote   = 0;
   LoggerMsg2.flags.overrun  = 0;
   LoggerMsg2.flags.reserved = 0;
-  
+
   Can1.write(LoggerMsg1);    //CANBus write command 
   Can1.write(LoggerMsg2);    //CANBus write command 
+  
 }

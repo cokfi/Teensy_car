@@ -64,7 +64,7 @@
 // Values
 #define VoltageTollerance           40      // Temporary value
 #define TorqueDelay                 5       // 5 MilliSec for Each torqe send   // Temporary value
-#define LOGGER_DELAY                50      // 50 MilliSec for Each DATALogger updates
+#define LOGGER_DELAY                20      // 50 MilliSec for Each DATALogger updates
 #define DelayMs                     1000    // Main delay, each ms the main loop on
 #define MaxPower                    10000   // 10000 Watt   // Temporary value
 #define CAP_CHARGED                 330     // capacitor [V] 95% TODO change value and units    // Temporary value
@@ -94,4 +94,5 @@
 #define MIN_TPS_THROTTLE 5 //TEMP
 #define MIN_MOTOR_TORQUE 5 //TEMP
 #define HARD_BRAKE_VALUE 50 // TEMP
+#define IMPLAUSIBILITY_COUNTER  5000
 #endif

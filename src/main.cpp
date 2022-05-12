@@ -12,15 +12,15 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2  ;
 
 //static CAN_message_t msg;
-CAN_message_t Torque_msg, LoggerMsg1, LoggerMsg2, LoggerMsg3;
+CAN_message_t Torque_msg, LoggerMsg1, LoggerMsg2;
 IntervalTimer myTimer1;                      // Create an IntervalTimer1 object 
 int8_t state = LV_STATE;
 uint8_t HeartBeatCounter = 0, FwRevCouter = 1, CoolButtonCounter = CoolButtonDelay, relay_counter = 0;
 uint8_t DcdcLowCurrent =0, DcdcLowVoltage=0;
-uint8_t PedalThrottle = 0, PedalBrake = 0, Battery_Percent, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
-uint8_t Charger_flags, voltage_implausibility;
+uint8_t PedalThrottle = 0, PedalBrake = 0, TS_voltage, TS_current, Acc_temperature, AMS_Shutdown, Battery_SOC_percent, Battery_state, AMS_flag_msg;
+uint8_t Charger_flags;
 //////////// Sevcon/////////////
-uint8_t SevconHeatSink;
+uint8_t SevconHeatSink,SevconReciveFWRV;
 uint16_t  SevconTemperature, SevconCapVoltage, SevconSpeed;
 int16_t SevconActualTorqueNM, SevconActualTorque,SevconDesiredTorque,SevconThrottle, SevconDesiredTorqueNM;
 int32_t SevconVelocity;
@@ -31,13 +31,15 @@ int32_t IvtsPower, IvtsTemperature, AMSBatteryVoltage, MotorTorque, Motor_On, Mo
 int32_t IvtsVoltage, IvtsCurrent;
 int32_t GPSVelocity, LoggerTemp1, LoggerTemp2;
 CAN_message_t msg ;
-bool init_skip = false , air_plus = false, charging = false, ready_to_drive_pressed = false, DcdcOn = false; // first time entering LV state
+bool init_skip = false ,  charging = false, ready_to_drive_pressed = false, DcdcOn = false; // first time entering LV state
 int8_t cool = 0 , current_list[NOMIMAL_NUM], index_current = 0;
 int8_t prev_cool =0, bt_counter=0;
-bool capacitor_high = false ; // true when capacitor voltage is higher than 95%
+uint8_t capacitor_high = 0 ,air_plus = 0; // true when capacitor voltage is higher than 95%
 bool enable_dcdc = true ; // 
-bool open_relay = false;
-
+bool open_relay = false, FirstTimeImpV=true;
+int16_t ImpCouter = IMPLAUSIBILITY_COUNTER; // IMPLUSIbillity COuntewr
+//integration variables:
+int stateUsage[] ={0,0,0,0,0,0,0,0,0} ;
 
 void setup(void)
 {
@@ -98,12 +100,14 @@ void loop() {
   Can2.events();
   if (MilliSec){
     MilliSec = false;
-    PatchForTorqueTest();
+    //PatchForTorqueTest();
     SendToLogger();
-    if (false){
-    HeartBeatAISP();
+    //if (false){
+    //HeartBeatAISP();
+    stateUsage[state-1]=1; 
     switch (state)
       {
+ 
       case LV_STATE:
           // init
           if (!init_skip){
@@ -115,8 +119,13 @@ void loop() {
           if ((air_plus) ||(digitalRead(shutdownFB_pin))) { //air+ rellay is closed OR Shutdown circut is closed 
             digitalWrite(TsoffLed_pin,LOW);
           }
+
+          // capacitor
+          if (!(SevconCapVoltage>CAP_CHARGED && IvtsVoltage> CAP_CHARGED)){ // capacitor is charged to 95% or higher voltage
+            capacitor_high =0; // For AMS to open air_plus
+          }
           // cooling
-          cool = CheckCooling(cool);// TODO send message to driver if cooling is needed
+        //  cool = CheckCooling(cool);// TODO send message to driver if cooling is needed
           // change state
           state = CheckHV();//check if high voltage
           state = LVError();// check if low voltage error
@@ -139,7 +148,9 @@ void loop() {
           }
           // capacitor
           if (SevconCapVoltage>CAP_CHARGED && IvtsVoltage> CAP_CHARGED){ // capacitor is charged to 95% or higher voltage
-            capacitor_high =true;
+            capacitor_high =1; // For AMS to close air_plus
+          }else{
+            capacitor_high =0; // For AMS to open air_plus
           }
           // DC-DC  
           DcDcCheck();
@@ -197,7 +208,7 @@ void loop() {
           if (state!=FW_STATE){ 
             digitalWrite(ForwardMotor_pin,LOW);
             init_skip = false;
-          }         
+          }        
           break;
 
       case REV_STATE:
@@ -269,6 +280,9 @@ void loop() {
             }
             init_skip = true;
           }
+          if (!(SevconCapVoltage>CAP_CHARGED && IvtsVoltage> CAP_CHARGED)){ // capacitor is charged to 95% or higher voltage
+            capacitor_high =0; // For AMS to open air_plus
+          }
           open_relay=WaitRelay(); // true after 250 milli seconds
           //open shutdown circut if allowed
           if (open_relay || digitalRead(shutdownFB_pin)){
@@ -318,6 +332,6 @@ void loop() {
 
 
       };
-    }
+    //}
   } 
 }
