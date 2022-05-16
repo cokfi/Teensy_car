@@ -215,17 +215,17 @@ void Send_Torque() {
   }
   else
   {
-    Torque_msg.buf[1] = (TPS_2_SEVCON_SCALE*PedalThrottle)%256; // Sevcon scale is 0.1% Pedal Controller scale is 1%
-    Torque_msg.buf[0] = (TPS_2_SEVCON_SCALE*PedalThrottle)/256; // Sevcon scale is 0.1% Pedal Controller scale is 1%
+    Torque_msg.buf[0] = int((TPS_2_SEVCON_SCALE_Lin + TPS_2_SEVCON_SCALE*PedalThrottle))%256; // Sevcon scale is 0.1% Pedal Controller scale is 1%
+    Torque_msg.buf[1] = (TPS_2_SEVCON_SCALE_Lin + TPS_2_SEVCON_SCALE*PedalThrottle)/256; // Sevcon scale is 0.1% Pedal Controller scale is 1%
     if ((state == LIMP_STATE)||(state == REV_STATE)){
-      Torque_msg.buf[1] = (TPS_2_SEVCON_SCALE*PedalThrottle/LIMP_DIVISION)%256; // Sevcon scale is 0.1% Pedal Controller scale is 1%, Limp division avoids high power consumption
-      Torque_msg.buf[0] = 0;
+      Torque_msg.buf[0] = int(( TPS_2_SEVCON_SCALE_Lin+ TPS_2_SEVCON_SCALE*PedalThrottle/LIMP_DIVISION))%256; // Sevcon scale is 0.1% Pedal Controller scale is 1%, Limp division avoids high power consumption
+      Torque_msg.buf[1] = 0;
     }
   }
-  if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE){
-    Torque_msg.buf[0] = 0;
+  if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE || state ==R2D_STATE){
+    Torque_msg.buf[1] = 0;
   }
-  Torque_msg.id = 0x111;
+  Torque_msg.id = 0x81;
   Torque_msg.len = 2;
   Torque_msg.flags.extended = 0;
   Torque_msg.flags.remote   = 0;
@@ -482,14 +482,14 @@ void SendToLogger(){
   LoggerMsg1.flags.reserved = 0;
     //LoggerMsg1 
   // Torqe
-  LoggerMsg1.buf[1] = (SevconActualTorque%256)/10;       //LSB
-  LoggerMsg1.buf[0] = (SevconActualTorque/256);  //MSB
+  LoggerMsg1.buf[0] = (SevconActualTorque%256)/10;       //LSB
+  LoggerMsg1.buf[1] = (SevconActualTorque/256);  //MSB
   //Motor Temperature
-  LoggerMsg1.buf[3] = SevconTemperature%256;    //LSB
-  LoggerMsg1.buf[2] = (SevconTemperature/256);  //MSB
+  LoggerMsg1.buf[2] = SevconTemperature%256;    //LSB
+  LoggerMsg1.buf[3] = (SevconTemperature/256);  //MSB
   // Sevcon Voltage
-  LoggerMsg1.buf[5] = SevconCapVoltage%256;    //LSB
-  LoggerMsg1.buf[4] = (SevconCapVoltage/256);  //MSB
+  LoggerMsg1.buf[4] = SevconCapVoltage%256;    //LSB
+  LoggerMsg1.buf[5] = (SevconCapVoltage/256);  //MSB
   // Sevcon HeatSink
   LoggerMsg1.buf[6] = SevconHeatSink;      // Check if LSB or MSB
   

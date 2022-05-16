@@ -45,7 +45,8 @@
 // Scaling
 #define SEVCON_SCALE_VOLTAGE      0.0625
 #define IVTS_SCALE_VOLTAGE        0.00107
-#define TPS_2_SEVCON_SCALE        10   
+#define TPS_2_SEVCON_SCALE_Lin    256  
+#define TPS_2_SEVCON_SCALE        7.8   
 #define IVTS_SCALE_CURRENT        0.0024937
 #define B_AND_T_NM_RPM_TO_50KW    0.105/20  // [RPM]*[NM]*[SCALE] = 50[KW]
 #define SEVCON_TORQUE_PRE_TO_NM   1         // TODO calculate the correct SCALE
@@ -62,7 +63,7 @@
 #define ERROR_STATE 8
 #define LIMP_STATE 9
 // Values
-#define VoltageTollerance           40      // Temporary value
+#define VoltageTollerance           40000      // Temporary value
 #define TorqueDelay                 5       // 5 MilliSec for Each torqe send   // Temporary value
 #define LOGGER_DELAY                20      // 50 MilliSec for Each DATALogger updates
 #define DelayMs                     1000    // Main delay, each ms the main loop on
@@ -72,7 +73,7 @@
 #define CoolingReqTemp              50      // Temporary value
 #define CoolButtonDelay             50      // Temporary value
 #define R2DDelay                    2000
-#define R2D_BUTTON_DELAY            100     // Temporary value
+#define R2D_BUTTON_DELAY            1000     // Temporary value
 #define CoolingOff                  0    
 #define CoolingTempHigh             1       // Temporary value
 #define ForcedCoolingVal            2       // Temporary value

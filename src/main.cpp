@@ -170,6 +170,7 @@ void loop() {
           if (!init_skip){
             init_skip = true;
           }
+          Send_Torque();
           // cooling
           cool= CheckCooling(cool); 
           if (cool!=prev_cool){
