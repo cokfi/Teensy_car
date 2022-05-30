@@ -152,14 +152,14 @@ void CAN2_Unpack(const CAN_message_t &inMsg) {
   SevconBeat = true; //  All Can2 Masseges comes from SEVCON
   switch(inMsg.id){
     case SEVCON_THROTTLE_ID:
-      SevconThrottle = (inMsg.buf[0] << 8) + inMsg.buf[1];  // 0.1%
-      SevconActualTorque = (inMsg.buf[2] << 8) + inMsg.buf[3];  // 0.1%
+      SevconThrottle = (inMsg.buf[1] << 8) + inMsg.buf[0];  // 0.1%
+      SevconActualTorque = (inMsg.buf[3] << 8) + inMsg.buf[2];  // 0.1%
       break;
     case SEVCON_TORQUE_ID:
-      SevconDesiredTorque = (inMsg.buf[2] << 8) + inMsg.buf[3];  // 0.1% 
+      SevconDesiredTorque = (inMsg.buf[3] << 8) + inMsg.buf[2];  // 0.1% 
       SevconDesiredTorqueNM = SEVCON_TORQUE_PRE_TO_NM*SevconDesiredTorque;
-      SevconActualTorqueNM = (inMsg.buf[4] << 8) + inMsg.buf[5];  // 0.0625[NM]
-      SevconTemperature = (inMsg.buf[6] << 8) + inMsg.buf[7];  // 1[C]  
+      SevconActualTorqueNM = (inMsg.buf[5] << 8) + inMsg.buf[4];  // 0.0625[NM]
+      SevconTemperature = (inMsg.buf[7] << 8) + inMsg.buf[6];  // 1[C]  
       break;
     case SEVCON_CAP_VOLTAGE_ID:
       SevconCapVoltage = ((inMsg.buf[1] << 8) + inMsg.buf[0]);  // 0.0625[V]

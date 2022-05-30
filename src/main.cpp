@@ -155,8 +155,8 @@ void loop() {
           // DC-DC  
           DcDcCheck();
           // change state
-          state = CheckR2D() ; // check if ready 2 drive
           state = CheckHV();//check if high voltage or low voltage
+          state = CheckR2D() ; // check if ready 2 drive
           state = HVError() ; // check if high voltage error
           if (state!=HV_STATE){ 
             ready_to_drive_pressed = false;
@@ -288,7 +288,7 @@ void loop() {
           open_relay=WaitRelay(); // true after 250 milli seconds
           //open shutdown circut if allowed
           if (open_relay || digitalRead(shutdownFB_pin)){
-            digitalWrite(Ecufault_pin,LOW); // TODO check if it is normally open
+            digitalWrite(Ecufault_pin,HIGH); // TODO check if it is normally open
           //discharge if allowed
             if (velocity < MIN_SPEED_FOR_DISCHARGE) { // TODO get velocity from GPS or Motor
               digitalWrite(AvoidDischarge_pin,LOW);
@@ -296,7 +296,7 @@ void loop() {
                 digitalWrite(TsoffLed_pin,HIGH);
           //change state
                 if(AllOk()){ 
-                  digitalWrite(Ecufault_pin,HIGH);
+                  digitalWrite(Ecufault_pin,LOW);
                   state = LV_STATE;
                 }
               }
