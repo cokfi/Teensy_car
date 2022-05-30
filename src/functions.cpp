@@ -162,7 +162,7 @@ void CAN2_Unpack(const CAN_message_t &inMsg) {
       SevconTemperature = (inMsg.buf[6] << 8) + inMsg.buf[7];  // 1[C]  
       break;
     case SEVCON_CAP_VOLTAGE_ID:
-      SevconCapVoltage = ((inMsg.buf[0] << 8) + inMsg.buf[1]);  // 0.0625[V]
+      SevconCapVoltage = ((inMsg.buf[1] << 8) + inMsg.buf[0]);  // 0.0625[V]
       SevconHeatSink   = inMsg.buf[2];  // 0.0625 1[C]
       break;
     case SEVCON_VELOCITY_ID:
@@ -225,7 +225,7 @@ void Send_Torque() {
   if (state == BT_FW_STATE || state == BT_REV_STATE || state == ERROR_STATE || state ==R2D_STATE){
     Torque_msg.buf[1] = 0;
   }
-  Torque_msg.id = 0x81;
+  Torque_msg.id = 0x111;
   Torque_msg.len = 2;
   Torque_msg.flags.extended = 0;
   Torque_msg.flags.remote   = 0;

@@ -127,7 +127,7 @@ void loop() {
           // cooling
         //  cool = CheckCooling(cool);// TODO send message to driver if cooling is needed
           // change state
-          state = CheckHV();//check if high voltage
+          state = CheckHV();//check if high voltage or low voltage
           state = LVError();// check if low voltage error
           if (state!=LV_STATE){ 
             init_skip = false;
@@ -156,6 +156,7 @@ void loop() {
           DcDcCheck();
           // change state
           state = CheckR2D() ; // check if ready 2 drive
+          state = CheckHV();//check if high voltage or low voltage
           state = HVError() ; // check if high voltage error
           if (state!=HV_STATE){ 
             ready_to_drive_pressed = false;
