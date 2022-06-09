@@ -47,7 +47,7 @@
 #define IVTS_SCALE_VOLTAGE        0.00107
 #define TPS_2_SEVCON_SCALE_Lin    256  
 #define TPS_2_SEVCON_SCALE        7.8   
-#define IVTS_SCALE_CURRENT        0.0024937
+#define IVTS_SCALE_CURRENT        0.001
 #define B_AND_T_NM_RPM_TO_50KW    0.105/20  // [RPM]*[NM]*[SCALE] = 50[KW]
 #define SEVCON_TORQUE_PRE_TO_NM   1         // TODO calculate the correct SCALE
 

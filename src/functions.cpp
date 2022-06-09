@@ -13,6 +13,9 @@ void Status_Print() {
   Serial.println(" [%]");
   Serial.print("PedalBrake: ");
   Serial.print(PedalBrake);
+  Serial.println(" [bar]");
+  Serial.print("PedalThrottle: ");
+  Serial.print(PedalThrottle);
   Serial.println(" [%]");
   Serial.print("current: ");
   Serial.print(IvtsCurrent);
